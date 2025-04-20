@@ -54,7 +54,7 @@ def login():
             if usuario.check_password(password):
                 login_user(usuario)
                 flash('Inicio de sesión exitoso', 'success')
-                return redirect(url_for('main.listaReservas'))
+                return redirect(url_for('main.principal'))
             else:
                 flash('Contraseña inválidas', 'danger')
                 
@@ -63,6 +63,11 @@ def login():
         flash('Ocurrió un error inesperado. Por favor, inténtalo de nuevo más tarde.', 'danger')
     
     return render_template('login.html')
+
+@main_routes.route('/principal', methods=['GET', 'POST'])
+def principal():
+
+    return render_template('principal.html')
 
 @main_routes.route('/logout')
 @admin_required
