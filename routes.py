@@ -1,5 +1,5 @@
 from flask import Flask, render_template, redirect, url_for, request, flash, Blueprint, jsonify, current_app
-from models import db, Usuario
+from models import db, Usuario, LibroCompra, LibroVenta, Cliente
 from datetime import datetime, time, timedelta
 from flask_login import login_user, login_required, current_user, logout_user
 from functools import wraps
@@ -63,8 +63,15 @@ def login():
 
 
 @main_routes.route('/clientes', methods=['GET', 'POST'])
+@admin_required
 def clientes():
-    return render_template('clientes.html')
+    try:
+        clientes = Cliente.query.all()
+        return render_template('clientes.html', clientes=clientes)
+    except Exception as e:
+        current_app.logger.error(f'Error al cargar clientes: {str(e)}')
+        flash('Error al cargar la lista de clientes', 'danger')
+        return redirect(url_for('main.login'))
 
 @main_routes.route('/logout')
 @admin_required
@@ -94,4 +101,93 @@ def toggle_block(user_id):
         return jsonify({'success': True}), 200
     except Exception as e:
         current_app.logger.error(f'Error al cambiar estado del usuario: {str(e)}')
+        return jsonify({'success': False, 'message': 'Error al procesar la solicitud'}), 500
+
+@main_routes.route('/librocompra')
+@admin_required
+def librocompra():
+    try:
+        compras = LibroCompra.query.all()
+        return render_template('librocompra.html', compras=compras)
+    except Exception as e:
+        current_app.logger.error(f'Error al cargar libro de compras: {str(e)}')
+        flash('Error al cargar el libro de compras', 'danger')
+        return redirect(url_for('main.clientes'))
+
+@main_routes.route('/libroventa')
+@admin_required
+def libroventa():
+    try:
+        ventas = LibroVenta.query.all()
+        return render_template('libroventa.html', ventas=ventas)
+    except Exception as e:
+        current_app.logger.error(f'Error al cargar libro de ventas: {str(e)}')
+        flash('Error al cargar el libro de ventas', 'danger')
+        return redirect(url_for('main.clientes'))
+
+@main_routes.route('/editar_compra/<int:compra_id>', methods=['GET', 'POST'])
+@admin_required
+def editar_compra(compra_id):
+    compra = LibroCompra.query.get_or_404(compra_id)
+    if request.method == 'POST':
+        try:
+            # Aquí irá la lógica para actualizar la compra
+            flash('Compra actualizada con éxito', 'success')
+            return redirect(url_for('main.librocompra'))
+        except Exception as e:
+            current_app.logger.error(f'Error al editar compra: {str(e)}')
+            flash('Error al editar la compra', 'danger')
+    return render_template('editar_compra.html', compra=compra)
+
+@main_routes.route('/editar_venta/<int:venta_id>', methods=['GET', 'POST'])
+@admin_required
+def editar_venta(venta_id):
+    venta = LibroVenta.query.get_or_404(venta_id)
+    if request.method == 'POST':
+        try:
+            # Aquí irá la lógica para actualizar la venta
+            flash('Venta actualizada con éxito', 'success')
+            return redirect(url_for('main.libroventa'))
+        except Exception as e:
+            current_app.logger.error(f'Error al editar venta: {str(e)}')
+            flash('Error al editar la venta', 'danger')
+    return render_template('editar_venta.html', venta=venta)
+
+@main_routes.route('/eliminar_compra/<int:compra_id>', methods=['POST'])
+@admin_required
+def eliminar_compra(compra_id):
+    try:
+        compra = LibroCompra.query.get_or_404(compra_id)
+        db.session.delete(compra)
+        db.session.commit()
+        flash('Compra eliminada con éxito', 'success')
+    except Exception as e:
+        current_app.logger.error(f'Error al eliminar compra: {str(e)}')
+        flash('Error al eliminar la compra', 'danger')
+    return redirect(url_for('main.librocompra'))
+
+@main_routes.route('/eliminar_venta/<int:venta_id>', methods=['POST'])
+@admin_required
+def eliminar_venta(venta_id):
+    try:
+        venta = LibroVenta.query.get_or_404(venta_id)
+        db.session.delete(venta)
+        db.session.commit()
+        flash('Venta eliminada con éxito', 'success')
+    except Exception as e:
+        current_app.logger.error(f'Error al eliminar venta: {str(e)}')
+        flash('Error al eliminar la venta', 'danger')
+    return redirect(url_for('main.libroventa'))
+
+@main_routes.route('/toggle_status/<int:cliente_id>', methods=['POST'])
+@admin_required
+def toggle_status(cliente_id):
+    try:
+        cliente = Cliente.query.get_or_404(cliente_id)
+        # Cambiar el estado entre 'activo' e 'inactivo'
+        cliente.status = 'inactivo' if cliente.status == 'activo' else 'activo'
+        db.session.commit()
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        current_app.logger.error(f'Error al cambiar estado del cliente: {str(e)}')
         return jsonify({'success': False, 'message': 'Error al procesar la solicitud'}), 500

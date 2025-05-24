@@ -1,0 +1,79 @@
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table id="example2" class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>N° Factura</th>
+                        <th>N° Control</th>
+                        <th>Fecha Registro</th>
+                        <th>Fecha Factura</th>
+                        <th>RIF</th>
+                        <th>Proveedor</th>
+                        <th>Monto Total</th>
+                        <th>Exentas</th>
+                        <th>Base Imponible</th>
+                        <th>Factura Polar</th>
+                        <th>Documento</th>
+                        <th>% IVA</th>
+                        <th>IVA</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for compra in compras %}
+                    <tr>
+                        <td>{{ compra.idfacturacompra }}</td>
+                        <td>{{ compra.numerofactura }}</td>
+                        <td>{{ compra.control }}</td>
+                        <td>{{ compra.fechar.strftime('%d-%m-%Y') }}</td>
+                        <td>{{ compra.fechafactura.strftime('%d-%m-%Y') }}</td>
+                        <td>{{ compra.rif }}</td>
+                        <td>{{ compra.provedor }}</td>
+                        <td>{{ "%.2f"|format(compra.montoTotal|float) }}</td>
+                        <td>{{ "%.2f"|format(compra.exentas|float) }}</td>
+                        <td>{{ "%.2f"|format(compra.base|float) }}</td>
+                        <td>{{ "Sí" if compra.facturapolar else "No" }}</td>
+                        <td>{{ compra.documento }}</td>
+                        <td>{{ "%.2f"|format(compra.porcentaje_iva|float) }}%</td>
+                        <td>{{ "%.2f"|format(compra.iva|float) }}</td>
+                        <td>
+                            <!-- Botones de acción -->
+                            <div class="d-flex gap-2">
+                                <a href="{{ url_for('main.editar_compra', compra_id=compra.idfacturacompra) }}" class="btn btn-primary btn-sm">
+                                    <i class="bx bx-edit"></i>
+                                </a>
+                                <form action="{{ url_for('main.eliminar_compra', compra_id=compra.idfacturacompra) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Está seguro de eliminar esta compra?')">
+                                        <i class="bx bx-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>ID</th>
+                        <th>N° Factura</th>
+                        <th>N° Control</th>
+                        <th>Fecha Registro</th>
+                        <th>Fecha Factura</th>
+                        <th>RIF</th>
+                        <th>Proveedor</th>
+                        <th>Monto Total</th>
+                        <th>Exentas</th>
+                        <th>Base Imponible</th>
+                        <th>Factura Polar</th>
+                        <th>Documento</th>
+                        <th>% IVA</th>
+                        <th>IVA</th>
+                        <th>Acciones</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div> 
