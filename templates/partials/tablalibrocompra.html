@@ -6,7 +6,7 @@
                 <span class="position-absolute top-50 product-show translate-middle-y"><i class="bx bx-search"></i></span>
             </div>
             <div class="ms-auto">
-                <a href="#" class="btn btn-primary radius-30 mt-2 mt-lg-0">
+                <a href="{{ url_for('main.crear_compra') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0">
                     <i class="bx bxs-plus-square"></i>Nueva Compra
                 </a>
             </div>
@@ -39,7 +39,7 @@
                         <td>{{ compra.fechar.strftime('%d-%m-%Y') }}</td>
                         <td>{{ compra.fechafactura.strftime('%d-%m-%Y') }}</td>
                         <td>{{ compra.rif }}</td>
-                        <td>{{ compra.proveedor }}</td>
+                        <td>{{ compra.provedor }}</td>
                         <td>{{ "%.2f"|format(compra.montoTotal|float) }}</td>
                         <td>{{ "%.2f"|format(compra.base|float) }}</td>
                         <td>{{ "%.2f"|format(compra.iva|float) }}</td>

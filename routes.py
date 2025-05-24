@@ -304,3 +304,69 @@ def crear_cliente():
         current_app.logger.error(f'Error al crear cliente: {str(e)}')
         flash('Error al crear el cliente', 'danger')
         return redirect(url_for('main.mostrar_crear_cliente'))
+
+@main_routes.route('/crear-venta', methods=['GET', 'POST'])
+def crear_venta():
+    if request.method == 'POST':
+        try:
+            nueva_venta = LibroVenta(
+                id_cliente=request.form['cliente'],
+                numerofactura=request.form['numerofactura'],
+                fechafactura=datetime.strptime(request.form['fechafactura'], '%Y-%m-%d'),
+                rif=request.form['rif'],
+                cliente=request.form['nombre_cliente'],
+                montoTotal=float(request.form['montoTotal']),
+                base=float(request.form['base']),
+                iva=float(request.form['iva']),
+                exentas=float(request.form['exentas']) if request.form['exentas'] else 0.00
+            )
+            
+            db.session.add(nueva_venta)
+            db.session.commit()
+            
+            flash('Venta creada exitosamente', 'success')
+            return redirect(url_for('main.libroventa'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al crear la venta: {str(e)}', 'error')
+            return redirect(url_for('main.crear_venta'))
+    
+    # GET request
+    clientes = Cliente.query.filter_by(status='activo').all()
+    return render_template('crear_venta.html', clientes=clientes)
+
+@main_routes.route('/crear-compra', methods=['GET', 'POST'])
+@admin_required
+def crear_compra():
+    if request.method == 'POST':
+        try:
+            nueva_compra = LibroCompra(
+                id_cliente=request.form['cliente'],
+                numerofactura=request.form['numerofactura'],
+                control=request.form['control'],
+                fechafactura=datetime.strptime(request.form['fechafactura'], '%Y-%m-%d'),
+                rif=request.form['rif_proveedor'],
+                provedor=request.form['provedor'],
+                montoTotal=float(request.form['montoTotal']),
+                base=float(request.form['base']),
+                iva=float(request.form['iva']),
+                exentas=float(request.form['exentas']) if request.form['exentas'] else 0.00,
+                facturapolar=True if request.form.get('facturapolar') else False,
+                documento=request.form['documento']
+            )
+            
+            db.session.add(nueva_compra)
+            db.session.commit()
+            
+            flash('Compra creada exitosamente', 'success')
+            return redirect(url_for('main.librocompra'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al crear la compra: {str(e)}', 'error')
+            return redirect(url_for('main.crear_compra'))
+    
+    # GET request
+    clientes = Cliente.query.filter_by(status='activo').all()
+    return render_template('crear_compra.html', clientes=clientes)
