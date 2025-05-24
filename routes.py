@@ -72,3 +72,26 @@ def logout():
     logout_user()  # Cierra la sesión
     flash('Has cerrado sesión exitosamente', 'success')
     return redirect(url_for('main.login'))
+
+@main_routes.route('/usuarios')
+@admin_required
+def usuarios():
+    usuarios = Usuario.query.all()
+    return render_template('usuarios.html', usuarios=usuarios)
+
+@main_routes.route('/toggle_block/<int:user_id>', methods=['POST'])
+@admin_required
+def toggle_block(user_id):
+    try:
+        usuario = Usuario.query.filter_by(usuario_id=user_id).first_or_404()
+        # No permitir que un admin se desactive a sí mismo
+        if usuario.usuario_id == current_user.usuario_id:
+            return jsonify({'success': False, 'message': 'No puedes desactivarte a ti mismo'}), 400
+        
+        usuario.status = not usuario.status
+        db.session.commit()
+        
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        current_app.logger.error(f'Error al cambiar estado del usuario: {str(e)}')
+        return jsonify({'success': False, 'message': 'Error al procesar la solicitud'}), 500
