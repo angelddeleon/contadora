@@ -191,3 +191,46 @@ def toggle_status(cliente_id):
     except Exception as e:
         current_app.logger.error(f'Error al cambiar estado del cliente: {str(e)}')
         return jsonify({'success': False, 'message': 'Error al procesar la solicitud'}), 500
+
+@main_routes.route('/cliente/<int:cliente_id>/libro-ventas')
+@admin_required
+def cliente_libro_ventas(cliente_id):
+    try:
+        print(f"Accediendo a libro de ventas para cliente ID: {cliente_id}")  # Debug
+        cliente = Cliente.query.get_or_404(cliente_id)
+        print(f"Cliente encontrado: {cliente.nombre}")  # Debug
+        ventas = LibroVenta.query.filter_by(id_cliente=cliente_id).all()
+        print(f"Número de ventas encontradas: {len(ventas)}")  # Debug
+        return render_template('libroventa.html', ventas=ventas, cliente=cliente, filtro_cliente=True)
+    except Exception as e:
+        current_app.logger.error(f'Error al cargar libro de ventas del cliente: {str(e)}')
+        print(f"Error en libro de ventas: {str(e)}")  # Debug
+        flash('Error al cargar el libro de ventas del cliente', 'danger')
+        return redirect(url_for('main.clientes'))
+
+@main_routes.route('/cliente/<int:cliente_id>/libro-compras')
+@admin_required
+def cliente_libro_compras(cliente_id):
+    try:
+        print(f"Accediendo a libro de compras para cliente ID: {cliente_id}")  # Debug
+        cliente = Cliente.query.get_or_404(cliente_id)
+        print(f"Cliente encontrado: {cliente.nombre}")  # Debug
+        compras = LibroCompra.query.filter_by(id_cliente=cliente_id).all()
+        print(f"Número de compras encontradas: {len(compras)}")  # Debug
+        return render_template('librocompra.html', compras=compras, cliente=cliente, filtro_cliente=True)
+    except Exception as e:
+        current_app.logger.error(f'Error al cargar libro de compras del cliente: {str(e)}')
+        print(f"Error en libro de compras: {str(e)}")  # Debug
+        flash('Error al cargar el libro de compras del cliente', 'danger')
+        return redirect(url_for('main.clientes'))
+
+@main_routes.route('/cliente/<int:cliente_id>')
+@admin_required
+def ver_cliente(cliente_id):
+    try:
+        cliente = Cliente.query.get_or_404(cliente_id)
+        return render_template('ver_cliente.html', cliente=cliente)
+    except Exception as e:
+        current_app.logger.error(f'Error al cargar detalles del cliente: {str(e)}')
+        flash('Error al cargar los detalles del cliente', 'danger')
+        return redirect(url_for('main.clientes'))

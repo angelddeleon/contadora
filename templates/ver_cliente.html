@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='assets/images/favicon-32x32.png') }}" type="image/png" />
+    <!-- Plugins -->
+    <link href="{{ url_for('static', filename='assets/plugins/simplebar/css/simplebar.css') }}" rel="stylesheet" />
+    <link href="{{ url_for('static', filename='assets/plugins/perfect-scrollbar/css/perfect-scrollbar.css') }}" rel="stylesheet" />
+    <link href="{{ url_for('static', filename='assets/plugins/metismenu/css/metisMenu.min.css') }}" rel="stylesheet" />
+    <!-- Bootstrap CSS -->
+    <link href="{{ url_for('static', filename='assets/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='assets/css/bootstrap-extended.css') }}" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='assets/css/app.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='assets/css/icons.css') }}" rel="stylesheet">
+    <!-- Theme Style CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/dark-theme.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/semi-dark.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/header-colors.css') }}" />
+    <title>Detalles del Cliente</title>
+</head>
+
+<body>
+    {% include 'partials/sidebar.html' %}
+    <div class="page-wrapper">
+        <div class="page-content">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">Detalles del Cliente</h4>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <p><strong>Nombre:</strong> {{ cliente.nombre }}</p>
+                            <p><strong>Representante:</strong> {{ cliente.representante }}</p>
+                            <p><strong>RIF:</strong> {{ cliente.rif }}</p>
+                            <p><strong>NIT:</strong> {{ cliente.nit }}</p>
+                            <p><strong>Dirección:</strong> {{ cliente.direccion }}</p>
+                            <p><strong>Teléfono:</strong> {{ cliente.telefono }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Número:</strong> {{ cliente.numero }}</p>
+                            <p><strong>Contribuyente:</strong> {{ 'Sí' if cliente.contribuyente else 'No' }}</p>
+                            <p><strong>Registradora:</strong> {{ cliente.registradora }}</p>
+                            <p><strong>Clasificación:</strong> {{ cliente.clasificacion }}</p>
+                            <p><strong>Usuario SENIAT:</strong> {{ cliente.usuarioseniat }}</p>
+                            <p><strong>Estado:</strong> {{ cliente.status|title }}</p>
+                        </div>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="d-flex gap-2">
+                                <a href="{{ url_for('main.cliente_libro_ventas', cliente_id=cliente.id_cliente) }}" class="btn btn-primary">
+                                    <i class="bx bx-receipt"></i> Ver Libro de Ventas
+                                </a>
+                                <a href="{{ url_for('main.cliente_libro_compras', cliente_id=cliente.id_cliente) }}" class="btn btn-success">
+                                    <i class="bx bx-shopping-bag"></i> Ver Libro de Compras
+                                </a>
+                                <a href="{{ url_for('main.clientes') }}" class="btn btn-secondary">
+                                    <i class="bx bx-arrow-back"></i> Volver
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="{{ url_for('static', filename='assets/js/bootstrap.bundle.min.js') }}"></script>
+    <!--plugins-->
+    <script src="{{ url_for('static', filename='assets/js/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/simplebar/js/simplebar.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/metismenu/js/metisMenu.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/perfect-scrollbar/js/perfect-scrollbar.js') }}"></script>
+    <!--app JS-->
+    <script src="{{ url_for('static', filename='assets/js/app.js') }}"></script>
+</body>
+
+</html> 

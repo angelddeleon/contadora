@@ -29,7 +29,16 @@
     {% include 'partials/sidebar.html' %}
     <div class="page-wrapper">
         <div class="page-content">
+            {% if filtro_cliente %}
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Libro de Ventas - {{ cliente.nombre }}</h1>
+                <a href="{{ url_for('main.clientes') }}" class="btn btn-secondary">
+                    <i class="bx bx-arrow-back"></i> Volver a Clientes
+                </a>
+            </div>
+            {% else %}
             <h1>Libro de Ventas</h1>
+            {% endif %}
             
             {% include 'partials/tablalibroventa.html' %}
         </div>
