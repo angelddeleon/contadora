@@ -6,12 +6,13 @@
             <div>
                 <img src="{{ url_for('static', filename='assets/imagenes/Logo-Waikiki-NEGRO.png') }}" alt="logo" height="35em" padding="1em">
             </div>
-            <div class="toggle-icon ms-auto" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-expanded="false">
+            <!-- Collapse button only for mobile -->
+            <div class="toggle-icon ms-auto d-lg-none" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-expanded="true">
                 <i class='bx bx-menu'></i>
             </div>
         </div>
         <!--navigation-->
-        <ul class="metismenu collapse" id="sidebarMenu">
+        <ul class="metismenu" id="sidebarMenu">
             <!-- Clientes -->
             <li style="background-color: {% if request.endpoint == 'main.clientes' %}#003366; color: white;{% endif %}">
                 <a href="javascript:;" class="has-arrow" style="color: {% if request.endpoint == 'main.clientes' %}white{% endif %}">
@@ -23,6 +24,14 @@
                         <a href="{{ url_for('main.clientes') }}" style="color: {% if request.endpoint == 'main.clientes' %}white{% endif %};">Lista de Clientes</a>
                     </li>
                 </ul>
+            </li>
+
+            <!-- Usuarios -->
+            <li style="background-color: {% if request.endpoint == 'main.usuarios' %}#003366; color: white;{% endif %}">
+                <a href="{{ url_for('main.usuarios') }}" style="color: {% if request.endpoint == 'main.usuarios' %}white{% endif %}">
+                    <div class="parent-icon"><i class='bx bx-group'></i></div>
+                    <div class="menu-title">Usuarios</div>
+                </a>
             </li>
 
             <!-- Cerrar Sesión -->
@@ -41,7 +50,10 @@
     <header>
         <div class="topbar d-flex align-items-center bg-dark shadow-none border-light-2 border-bottom">
             <nav class="navbar navbar-expand">
-                <div class="mobile-toggle-menu text-white me-3" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-expanded="false"><i class='bx bx-menu'></i></div>
+                <!-- Collapse button only for mobile -->
+                <div class="mobile-toggle-menu text-white me-3 d-lg-none" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-expanded="true">
+                    <i class='bx bx-menu'></i>
+                </div>
                 <div class="search-bar flex-grow-1">
                     <div class="position-relative search-bar-box">
                         <form>
