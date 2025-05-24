@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_migrate import Migrate
 from config import Config
 from routes import main_routes
 from models import db, Usuario
@@ -16,6 +17,9 @@ app.config.from_object(Config)
 
 # Inicializar la instancia de SQLAlchemy
 db.init_app(app)
+
+# Inicializar Flask-Migrate
+migrate = Migrate(app, db)
 
 # Configuración de Flask-Login
 login_manager = LoginManager()
