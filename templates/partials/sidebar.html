@@ -15,15 +15,10 @@
         <ul class="metismenu" id="sidebarMenu">
             <!-- Clientes -->
             <li style="background-color: {% if request.endpoint == 'main.clientes' %}#003366; color: white;{% endif %}">
-                <a href="javascript:;" class="has-arrow" style="color: {% if request.endpoint == 'main.clientes' %}white{% endif %}">
+                <a href="{{ url_for('main.clientes') }}" style="color: {% if request.endpoint == 'main.clientes' %}white{% endif %}">
                     <div class="parent-icon"><i class='bx bx-user-circle'></i></div>
                     <div class="menu-title">Clientes</div>
                 </a>
-                <ul>
-                    <li style="background-color: {% if request.endpoint == 'main.clientes' %}#336699; color: white;{% endif %}">
-                        <a href="{{ url_for('main.clientes') }}" style="color: {% if request.endpoint == 'main.clientes' %}white{% endif %};">Lista de Clientes</a>
-                    </li>
-                </ul>
             </li>
 
             <!-- Usuarios -->
