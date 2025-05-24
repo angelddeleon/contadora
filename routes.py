@@ -370,3 +370,51 @@ def crear_compra():
     # GET request
     clientes = Cliente.query.filter_by(status='activo').all()
     return render_template('crear_compra.html', clientes=clientes)
+
+@main_routes.route('/editar_cliente/<int:cliente_id>', methods=['GET'])
+@admin_required
+def mostrar_editar_cliente(cliente_id):
+    try:
+        cliente = Cliente.query.get_or_404(cliente_id)
+        return render_template('editar_cliente.html', cliente=cliente)
+    except Exception as e:
+        current_app.logger.error(f'Error al cargar formulario de edición: {str(e)}')
+        flash('Error al cargar el formulario de edición', 'danger')
+        return redirect(url_for('main.clientes'))
+
+@main_routes.route('/editar_cliente/<int:cliente_id>', methods=['POST'])
+@admin_required
+def editar_cliente(cliente_id):
+    try:
+        cliente = Cliente.query.get_or_404(cliente_id)
+        
+        # Actualizar datos del cliente
+        cliente.nombre = request.form.get('nombre')
+        cliente.representante = request.form.get('representante')
+        cliente.rif = request.form.get('rif')
+        cliente.nit = request.form.get('nit')
+        cliente.direccion = request.form.get('direccion')
+        cliente.telefono = request.form.get('telefono')
+        cliente.numero = request.form.get('numero')
+        cliente.contribuyente = request.form.get('contribuyente')
+        cliente.registradora = request.form.get('registradora')
+        cliente.clasificacion = request.form.get('clasificacion')
+        cliente.usuarioseniat = request.form.get('usuarioseniat')
+        
+        # Solo actualizar la clave SENIAT si se proporciona una nueva
+        nueva_clave_seniat = request.form.get('claveseniat')
+        if nueva_clave_seniat:
+            cliente.claveseniat = nueva_clave_seniat
+            
+        cliente.clavepatente = request.form.get('clavepatente')
+        cliente.directoriocomo = request.form.get('directoriocomo')
+        
+        db.session.commit()
+        flash('Cliente actualizado exitosamente', 'success')
+        return redirect(url_for('main.ver_cliente', cliente_id=cliente_id))
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Error al actualizar cliente: {str(e)}')
+        flash('Error al actualizar el cliente', 'danger')
+        return redirect(url_for('main.mostrar_editar_cliente', cliente_id=cliente_id))

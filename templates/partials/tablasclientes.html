@@ -17,6 +17,7 @@
                     <tr>
                         <th>Cliente</th>
                         <th>Estado</th>
+                        <th>Contribuyente</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -38,6 +39,17 @@
                             {% else %}
                             <div class="badge rounded-pill text-danger bg-light-danger p-2 text-uppercase px-3">
                                 <i class='bx bxs-circle align-middle me-1'></i>Inactivo
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if cliente.contribuyente == 'ordinario' %}
+                            <div class="badge rounded-pill text-secondary bg-light-secondary p-2 text-uppercase px-3">
+                                <i class='bx bxs-circle align-middle me-1'></i>Ordinario
+                            </div>
+                            {% else %}
+                            <div class="badge rounded-pill text-warning bg-light-warning p-2 text-uppercase px-3">
+                                <i class='bx bxs-circle align-middle me-1'></i>Especial
                             </div>
                             {% endif %}
                         </td>

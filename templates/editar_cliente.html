@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='assets/images/favicon-32x32.png') }}" type="image/png" />
+    <!-- Plugins -->
+    <link href="{{ url_for('static', filename='assets/plugins/simplebar/css/simplebar.css') }}" rel="stylesheet" />
+    <link href="{{ url_for('static', filename='assets/plugins/perfect-scrollbar/css/perfect-scrollbar.css') }}" rel="stylesheet" />
+    <link href="{{ url_for('static', filename='assets/plugins/metismenu/css/metisMenu.min.css') }}" rel="stylesheet" />
+    <!-- Bootstrap CSS -->
+    <link href="{{ url_for('static', filename='assets/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='assets/css/bootstrap-extended.css') }}" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='assets/css/app.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='assets/css/icons.css') }}" rel="stylesheet">
+    <title>Editar Cliente</title>
+</head>
+
+<body>
+    {% include 'partials/sidebar.html' %}
+    <div class="page-wrapper">
+        <div class="page-content">
+            <div class="card">
+                <div class="card-body">
+                    <div class="border p-4 rounded">
+                        <div class="card-title d-flex align-items-center">
+                            <h5 class="mb-0">Editar Cliente</h5>
+                        </div>
+                        <hr>
+                        <form action="{{ url_for('main.editar_cliente', cliente_id=cliente.id_cliente) }}" method="POST">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Nombre *</label>
+                                    <input type="text" class="form-control" name="nombre" value="{{ cliente.nombre }}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Representante</label>
+                                    <input type="text" class="form-control" name="representante" value="{{ cliente.representante }}">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">RIF</label>
+                                    <input type="text" class="form-control" name="rif" value="{{ cliente.rif }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">NIT</label>
+                                    <input type="text" class="form-control" name="nit" value="{{ cliente.nit }}">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <label class="form-label">Dirección</label>
+                                    <input type="text" class="form-control" name="direccion" value="{{ cliente.direccion }}">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Teléfono</label>
+                                    <input type="text" class="form-control" name="telefono" value="{{ cliente.telefono }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Número</label>
+                                    <input type="text" class="form-control" name="numero" value="{{ cliente.numero }}">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Registradora</label>
+                                    <input type="text" class="form-control" name="registradora" value="{{ cliente.registradora }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Clasificación</label>
+                                    <input type="text" class="form-control" name="clasificacion" value="{{ cliente.clasificacion }}">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Usuario SENIAT</label>
+                                    <input type="text" class="form-control" name="usuarioseniat" value="{{ cliente.usuarioseniat }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Clave SENIAT</label>
+                                    <input type="password" class="form-control" name="claveseniat" value="{{ cliente.claveseniat }}">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Clave Patente</label>
+                                    <input type="text" class="form-control" name="clavepatente" value="{{ cliente.clavepatente }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Directorio COMO</label>
+                                    <input type="text" class="form-control" name="directoriocomo" value="{{ cliente.directoriocomo }}">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <label class="form-label">Tipo de Contribuyente *</label>
+                                    <select class="form-select" name="contribuyente" required>
+                                        <option value="ordinario" {% if cliente.contribuyente == 'ordinario' %}selected{% endif %}>Ordinario</option>
+                                        <option value="especial" {% if cliente.contribuyente == 'especial' %}selected{% endif %}>Especial</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <button type="submit" class="btn btn-primary px-5">Guardar Cambios</button>
+                                    <a href="{{ url_for('main.ver_cliente', cliente_id=cliente.id_cliente) }}" class="btn btn-secondary px-5">Cancelar</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="{{ url_for('static', filename='assets/js/bootstrap.bundle.min.js') }}"></script>
+    <!--plugins-->
+    <script src="{{ url_for('static', filename='assets/js/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/simplebar/js/simplebar.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/metismenu/js/metisMenu.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/plugins/perfect-scrollbar/js/perfect-scrollbar.js') }}"></script>
+    <!--app JS-->
+    <script src="{{ url_for('static', filename='assets/js/app.js') }}"></script>
+</body>
+
+</html> 

@@ -46,6 +46,7 @@
                             <p><strong>Registradora:</strong> {{ cliente.registradora }}</p>
                             <p><strong>Clasificación:</strong> {{ cliente.clasificacion }}</p>
                             <p><strong>Usuario SENIAT:</strong> {{ cliente.usuarioseniat }}</p>
+                            <p><strong>Clave SENIAT:</strong> {{ cliente.claveseniat }}</p>
                             <p><strong>Estado:</strong> {{ cliente.status|title }}</p>
                         </div>
                     </div>
@@ -57,6 +58,9 @@
                                 </a>
                                 <a href="{{ url_for('main.cliente_libro_compras', cliente_id=cliente.id_cliente) }}" class="btn btn-success">
                                     <i class="bx bx-shopping-bag"></i> Ver Libro de Compras
+                                </a>
+                                <a href="{{ url_for('main.editar_cliente', cliente_id=cliente.id_cliente) }}" class="btn btn-warning">
+                                    <i class="bx bx-edit"></i> Editar Cliente
                                 </a>
                                 <a href="{{ url_for('main.clientes') }}" class="btn btn-secondary">
                                     <i class="bx bx-arrow-back"></i> Volver
