@@ -14,7 +14,7 @@ def admin_required(f):
     @wraps(f)
     @login_required
     def decorated_function(*args, **kwargs):
-        if current_user.role != 'admin':
+        if current_user.rol != 'admin':
             flash('No tienes permiso para acceder a esta página', 'danger')
             return redirect(url_for('main.login'))  # Redirigir al login si no es admin
         return f(*args, **kwargs)
@@ -26,27 +26,23 @@ def admin_required(f):
 def login():
     try:
         if request.method == 'POST':
-            email = request.form.get('email', '').strip()
+            nombreuser = request.form.get('nombreuser', '').strip()
             password = request.form.get('password', '').strip()
             
             # Validaciones básicas
-            if not email or not password:
+            if not nombreuser or not password:
                 flash('Todos los campos son obligatorios', 'danger')
                 return redirect(url_for('main.login'))
             
-            if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
-                flash('Formato de correo electrónico inválido', 'danger')
-                return redirect(url_for('main.login'))
-            
-            # Buscar al usuario
-            usuario = db.session.query(Usuario).filter_by(email=email).first()
+            # Buscar al usuario por nombre de usuario
+            usuario = db.session.query(Usuario).filter_by(nombreuser=nombreuser).first()
             
             if not usuario:
-                flash('Este usuario no es valido', 'danger')  # Mensaje genérico por seguridad
+                flash('Este usuario no es válido', 'danger')  # Mensaje genérico por seguridad
                 return redirect(url_for('main.login'))
             
             # Verificar si es admin
-            if usuario.role != 'admin':
+            if usuario.rol != 'admin':
                 flash('Acceso restringido a solo administradores', 'danger')
                 return redirect(url_for('main.login'))
             
@@ -54,9 +50,9 @@ def login():
             if usuario.check_password(password):
                 login_user(usuario)
                 flash('Inicio de sesión exitoso', 'success')
-                return redirect(url_for('main.principal'))
+                return redirect(url_for('main.clientes'))
             else:
-                flash('Contraseña inválidas', 'danger')
+                flash('Contraseña inválida', 'danger')
                 
     except Exception as e:
         current_app.logger.error(f'Error en login: {str(e)}')
@@ -64,10 +60,11 @@ def login():
     
     return render_template('login.html')
 
-@main_routes.route('/principal', methods=['GET', 'POST'])
-def principal():
 
-    return render_template('principal.html')
+
+@main_routes.route('/clientes', methods=['GET', 'POST'])
+def clientes():
+    return render_template('clientes.html')
 
 @main_routes.route('/logout')
 @admin_required

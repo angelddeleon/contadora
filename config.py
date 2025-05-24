@@ -6,7 +6,7 @@ class Config:
     
     # Configuración de la base de datos (MySQL con PyMySQL)
     MYSQL_USER = 'root'
-    MYSQL_PASSWORD = '#Lo28de06'
+    MYSQL_PASSWORD = 'contrasena'
     MYSQL_HOST = 'localhost'
     MYSQL_PORT = 3306
     MYSQL_DB = 'contadora'

@@ -5,6 +5,7 @@ from config import Config
 from routes import main_routes
 from models import db, Usuario
 from functools import wraps
+from werkzeug.security import generate_password_hash
 
 
 
@@ -23,6 +24,12 @@ login_manager.login_view = "main.login"  # Ruta a la que se redirige si no está
 
 # Registrar las rutas desde otro archivo
 app.register_blueprint(main_routes)
+
+hashed_password = generate_password_hash("123456")
+
+print("Contraseña hasheada:", hashed_password)
+
+
 
 # Función de carga del usuario (Flask-Login)
 @login_manager.user_loader
