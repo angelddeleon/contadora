@@ -234,3 +234,73 @@ def ver_cliente(cliente_id):
         current_app.logger.error(f'Error al cargar detalles del cliente: {str(e)}')
         flash('Error al cargar los detalles del cliente', 'danger')
         return redirect(url_for('main.clientes'))
+
+@main_routes.route('/crear_cliente', methods=['GET'])
+@admin_required
+def mostrar_crear_cliente():
+    try:
+        return render_template('crear_cliente.html')
+    except Exception as e:
+        current_app.logger.error(f'Error al mostrar formulario de cliente: {str(e)}')
+        flash('Error al cargar el formulario', 'danger')
+        return redirect(url_for('main.clientes'))
+
+@main_routes.route('/crear_cliente', methods=['POST'])
+@admin_required
+def crear_cliente():
+    try:
+        # Obtener datos del formulario
+        nombre = request.form.get('nombre')
+        representante = request.form.get('representante')
+        rif = request.form.get('rif')
+        nit = request.form.get('nit')
+        direccion = request.form.get('direccion')
+        telefono = request.form.get('telefono')
+        numero = request.form.get('numero')
+        contribuyente = request.form.get('contribuyente')  # Ahora será 'ordinario' o 'especial'
+        registradora = request.form.get('registradora')
+        clasificacion = request.form.get('clasificacion')
+        usuarioseniat = request.form.get('usuarioseniat')
+        claveseniat = request.form.get('claveseniat')
+        clavepatente = request.form.get('clavepatente')
+        directoriocomo = request.form.get('directoriocomo')
+        
+        # Validar campos requeridos
+        if not nombre:
+            flash('El nombre del cliente es requerido', 'danger')
+            return redirect(url_for('main.mostrar_crear_cliente'))
+            
+        if contribuyente not in ['ordinario', 'especial']:
+            flash('El tipo de contribuyente debe ser ordinario o especial', 'danger')
+            return redirect(url_for('main.mostrar_crear_cliente'))
+            
+        # Crear nuevo cliente
+        nuevo_cliente = Cliente(
+            nombre=nombre,
+            representante=representante,
+            rif=rif,
+            nit=nit,
+            direccion=direccion,
+            telefono=telefono,
+            numero=numero,
+            contribuyente=contribuyente,
+            registradora=registradora,
+            clasificacion=clasificacion,
+            usuarioseniat=usuarioseniat,
+            claveseniat=claveseniat,
+            clavepatente=clavepatente,
+            directoriocomo=directoriocomo,
+            status='activo'
+        )
+        
+        db.session.add(nuevo_cliente)
+        db.session.commit()
+        
+        flash('Cliente creado exitosamente', 'success')
+        return redirect(url_for('main.clientes'))
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Error al crear cliente: {str(e)}')
+        flash('Error al crear el cliente', 'danger')
+        return redirect(url_for('main.mostrar_crear_cliente'))

@@ -42,7 +42,7 @@
                         </div>
                         <div class="col-md-6">
                             <p><strong>Número:</strong> {{ cliente.numero }}</p>
-                            <p><strong>Contribuyente:</strong> {{ 'Sí' if cliente.contribuyente else 'No' }}</p>
+                            <p><strong>Contribuyente:</strong> {{ cliente.contribuyente|title }}</p>
                             <p><strong>Registradora:</strong> {{ cliente.registradora }}</p>
                             <p><strong>Clasificación:</strong> {{ cliente.clasificacion }}</p>
                             <p><strong>Usuario SENIAT:</strong> {{ cliente.usuarioseniat }}</p>

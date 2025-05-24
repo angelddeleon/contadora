@@ -47,7 +47,7 @@ class Cliente(db.Model):
     direccion = db.Column(db.String(200))
     telefono = db.Column(db.String(20))
     numero = db.Column(db.String(20))
-    contribuyente = db.Column(db.Boolean, default=False)
+    contribuyente = db.Column(db.Enum('ordinario', 'especial', name='tipo_contribuyente'), nullable=False, default='ordinario')
     registradora = db.Column(db.String(50))
     clasificacion = db.Column(db.String(50))
     usuarioseniat = db.Column(db.String(50))
@@ -57,7 +57,7 @@ class Cliente(db.Model):
     directoriocomo = db.Column(db.String(255))
     
     def __init__(self, nombre, representante=None, rif=None, nit=None, 
-                 direccion=None, telefono=None, numero=None, contribuyente=False,
+                 direccion=None, telefono=None, numero=None, contribuyente='ordinario',
                  registradora=None, clasificacion=None, usuarioseniat=None,
                  claveseniat=None, status='activo', clavepatente=None,
                  directoriocomo=None):
