@@ -55,25 +55,14 @@
                                 </div>
                                 <div class="col-lg-6">
                                     <div class="mb-3">
-                                        <label for="cliente" class="form-label">Cliente</label>
-                                        <select class="form-select" id="cliente" name="cliente" required>
-                                            <option value="">Seleccione un cliente</option>
-                                            {% for cliente in clientes %}
-                                            <option value="{{ cliente.id_cliente }}" data-rif="{{ cliente.rif }}" data-nombre="{{ cliente.nombre }}">{{ cliente.nombre }}</option>
-                                            {% endfor %}
-                                        </select>
+                                        <label for="rif_proveedor" class="form-label">RIF del Proveedor</label>
+                                        <input type="text" class="form-control" id="rif_proveedor" name="rif_proveedor" required>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="row">
-                                <div class="col-lg-6">
-                                    <div class="mb-3">
-                                        <label for="rif_proveedor" class="form-label">RIF del Proveedor</label>
-                                        <input type="text" class="form-control" id="rif_proveedor" name="rif_proveedor" required>
-                                    </div>
-                                </div>
-                                <div class="col-lg-6">
+                                <div class="col-lg-12">
                                     <div class="mb-3">
                                         <label for="provedor" class="form-label">Nombre del Proveedor</label>
                                         <input type="text" class="form-control" id="provedor" name="provedor" required>
@@ -116,6 +105,7 @@
                                             <option value="Factura">Factura</option>
                                             <option value="Nota de Crédito">Nota de Crédito</option>
                                             <option value="Nota de Débito">Nota de Débito</option>
+                                            <option value="Reporte Z">Reporte Z</option>
                                         </select>
                                     </div>
                                 </div>

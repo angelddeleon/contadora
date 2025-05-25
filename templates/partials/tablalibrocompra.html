@@ -6,7 +6,7 @@
                 <span class="position-absolute top-50 product-show translate-middle-y"><i class="bx bx-search"></i></span>
             </div>
             <div class="ms-auto">
-                <a href="{{ url_for('main.crear_compra') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0">
+                <a href="{{ url_for('main.crear_compra', cliente_id=cliente.id_cliente) }}" class="btn btn-primary radius-30 mt-2 mt-lg-0">
                     <i class="bx bxs-plus-square"></i>Nueva Compra
                 </a>
             </div>
@@ -20,9 +20,11 @@
                         <th>Fecha Factura</th>
                         <th>RIF</th>
                         <th>Proveedor</th>
+                        <th>Tipo Documento</th>
                         <th>Monto Total</th>
                         <th>Base Imponible</th>
-                        <th>IVA</th>
+                        <th>% IVA</th>
+                        <th>Monto IVA</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -40,8 +42,22 @@
                         <td>{{ compra.fechafactura.strftime('%d-%m-%Y') }}</td>
                         <td>{{ compra.rif }}</td>
                         <td>{{ compra.provedor }}</td>
+                        <td>
+                            {% if compra.documento == 'Factura' %}
+                            <span class="badge bg-primary">{{ compra.documento }}</span>
+                            {% elif compra.documento == 'Nota de Crédito' %}
+                            <span class="badge bg-success">{{ compra.documento }}</span>
+                            {% elif compra.documento == 'Nota de Débito' %}
+                            <span class="badge bg-warning">{{ compra.documento }}</span>
+                            {% elif compra.documento == 'Reporte Z' %}
+                            <span class="badge bg-info">{{ compra.documento }}</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ compra.documento }}</span>
+                            {% endif %}
+                        </td>
                         <td>{{ "%.2f"|format(compra.montoTotal|float) }}</td>
                         <td>{{ "%.2f"|format(compra.base|float) }}</td>
+                        <td>{{ "%.2f"|format(compra.porcentaje_iva|float) }}%</td>
                         <td>{{ "%.2f"|format(compra.iva|float) }}</td>
                         <td>
                             <div class="d-flex gap-2">

@@ -306,43 +306,75 @@ def crear_cliente():
         return redirect(url_for('main.mostrar_crear_cliente'))
 
 @main_routes.route('/crear-venta', methods=['GET', 'POST'])
+@admin_required
 def crear_venta():
-    if request.method == 'POST':
-        try:
-            nueva_venta = LibroVenta(
-                id_cliente=request.form['cliente'],
-                numerofactura=request.form['numerofactura'],
-                fechafactura=datetime.strptime(request.form['fechafactura'], '%Y-%m-%d'),
-                rif=request.form['rif'],
-                cliente=request.form['nombre_cliente'],
-                montoTotal=float(request.form['montoTotal']),
-                base=float(request.form['base']),
-                iva=float(request.form['iva']),
-                exentas=float(request.form['exentas']) if request.form['exentas'] else 0.00
-            )
-            
-            db.session.add(nueva_venta)
-            db.session.commit()
-            
-            flash('Venta creada exitosamente', 'success')
-            return redirect(url_for('main.libroventa'))
-            
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error al crear la venta: {str(e)}', 'error')
-            return redirect(url_for('main.crear_venta'))
+    cliente_id = request.args.get('cliente_id')
+    current_app.logger.debug(f"Iniciando crear_venta con cliente_id: {cliente_id}")
     
-    # GET request
-    clientes = Cliente.query.filter_by(status='activo').all()
-    return render_template('crear_venta.html', clientes=clientes)
+    if not cliente_id:
+        flash('Se requiere especificar un cliente', 'danger')
+        return redirect(url_for('main.clientes'))
+        
+    try:
+        cliente = Cliente.query.get_or_404(cliente_id)
+        current_app.logger.debug(f"Cliente encontrado: {cliente.nombre}")
+        
+        if request.method == 'POST':
+            current_app.logger.debug("Procesando POST request")
+            current_app.logger.debug(f"Datos del formulario: {request.form}")
+            
+            try:
+                nueva_venta = LibroVenta(
+                    id_cliente=int(cliente_id),
+                    numerofactura=request.form['numerofactura'],
+                    fechafactura=datetime.strptime(request.form['fechafactura'], '%Y-%m-%d'),
+                    rif=request.form['rif'],
+                    cliente=request.form['nombre_cliente'],
+                    montoTotal=float(request.form['montoTotal']),
+                    base=float(request.form['base']),
+                    iva=float(request.form['iva']),
+                    exentas=float(request.form['exentas']) if request.form.get('exentas') else 0.00,
+                    documento=request.form.get('documento', 'Factura')
+                )
+                
+                current_app.logger.debug("Nueva venta creada, intentando guardar en la base de datos")
+                db.session.add(nueva_venta)
+                db.session.commit()
+                
+                current_app.logger.debug("Venta guardada exitosamente")
+                flash('Venta creada exitosamente', 'success')
+                return redirect(url_for('main.cliente_libro_ventas', cliente_id=cliente_id))
+                
+            except Exception as e:
+                db.session.rollback()
+                current_app.logger.error(f'Error al crear la venta: {str(e)}')
+                current_app.logger.exception("Excepción completa:")
+                flash(f'Error al crear la venta: {str(e)}', 'danger')
+                return render_template('crear_venta.html', cliente=cliente)
+        
+        # GET request
+        return render_template('crear_venta.html', cliente=cliente)
+        
+    except Exception as e:
+        current_app.logger.error(f'Error al acceder al cliente: {str(e)}')
+        current_app.logger.exception("Excepción completa:")
+        flash('Error al acceder al cliente', 'danger')
+        return redirect(url_for('main.clientes'))
 
 @main_routes.route('/crear-compra', methods=['GET', 'POST'])
 @admin_required
 def crear_compra():
+    cliente_id = request.args.get('cliente_id')
+    if not cliente_id:
+        flash('Se requiere especificar un cliente', 'danger')
+        return redirect(url_for('main.clientes'))
+        
+    cliente = Cliente.query.get_or_404(cliente_id)
+    
     if request.method == 'POST':
         try:
             nueva_compra = LibroCompra(
-                id_cliente=request.form['cliente'],
+                id_cliente=cliente_id,
                 numerofactura=request.form['numerofactura'],
                 control=request.form['control'],
                 fechafactura=datetime.strptime(request.form['fechafactura'], '%Y-%m-%d'),
@@ -353,23 +385,22 @@ def crear_compra():
                 iva=float(request.form['iva']),
                 exentas=float(request.form['exentas']) if request.form['exentas'] else 0.00,
                 facturapolar=True if request.form.get('facturapolar') else False,
-                documento=request.form['documento']
+                documento=request.form.get('documento', 'Factura')
             )
             
             db.session.add(nueva_compra)
             db.session.commit()
             
             flash('Compra creada exitosamente', 'success')
-            return redirect(url_for('main.librocompra'))
+            return redirect(url_for('main.cliente_libro_compras', cliente_id=cliente_id))
             
         except Exception as e:
             db.session.rollback()
             flash(f'Error al crear la compra: {str(e)}', 'error')
-            return redirect(url_for('main.crear_compra'))
+            return redirect(url_for('main.crear_compra', cliente_id=cliente_id))
     
     # GET request
-    clientes = Cliente.query.filter_by(status='activo').all()
-    return render_template('crear_compra.html', clientes=clientes)
+    return render_template('crear_compra.html', cliente=cliente)
 
 @main_routes.route('/editar_cliente/<int:cliente_id>', methods=['GET'])
 @admin_required

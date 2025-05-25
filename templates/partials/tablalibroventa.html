@@ -6,7 +6,7 @@
                 <span class="position-absolute top-50 product-show translate-middle-y"><i class="bx bx-search"></i></span>
             </div>
             <div class="ms-auto">
-                <a href="{{ url_for('main.crear_venta') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0">
+                <a href="{{ url_for('main.crear_venta', cliente_id=cliente.id_cliente) }}" class="btn btn-primary radius-30 mt-2 mt-lg-0">
                     <i class="bx bxs-plus-square"></i>Nueva Venta
                 </a>
             </div>
@@ -19,9 +19,11 @@
                         <th>Fecha Factura</th>
                         <th>RIF</th>
                         <th>Cliente</th>
+                        <th>Tipo Documento</th>
                         <th>Monto Total</th>
                         <th>Base Imponible</th>
-                        <th>IVA</th>
+                        <th>% IVA</th>
+                        <th>Monto IVA</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -38,8 +40,22 @@
                         <td>{{ venta.fechafactura.strftime('%d-%m-%Y') }}</td>
                         <td>{{ venta.rif }}</td>
                         <td>{{ venta.cliente }}</td>
+                        <td>
+                            {% if venta.documento == 'Factura' %}
+                            <span class="badge bg-primary">{{ venta.documento }}</span>
+                            {% elif venta.documento == 'Nota de Crédito' %}
+                            <span class="badge bg-success">{{ venta.documento }}</span>
+                            {% elif venta.documento == 'Nota de Débito' %}
+                            <span class="badge bg-warning">{{ venta.documento }}</span>
+                            {% elif venta.documento == 'Reporte Z' %}
+                            <span class="badge bg-info">{{ venta.documento }}</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ venta.documento }}</span>
+                            {% endif %}
+                        </td>
                         <td>{{ "%.2f"|format(venta.montoTotal|float) }}</td>
                         <td>{{ "%.2f"|format(venta.base|float) }}</td>
+                        <td>{{ "%.2f"|format(venta.porcentaje_iva|float) }}%</td>
                         <td>{{ "%.2f"|format(venta.iva|float) }}</td>
                         <td>
                             <div class="d-flex gap-2">

@@ -117,13 +117,14 @@ class LibroVenta(db.Model):
     cajaregistradora = db.Column(db.String(50))
     porcentaje_iva = db.Column(db.Numeric(5, 2), default=16.00)  # % de IVA
     iva = db.Column(db.Numeric(12, 2), nullable=False)  # Monto de IVA
+    documento = db.Column(db.String(20), default='Factura')  # Tipo de documento
     
     # Relación con Cliente
     cliente_rel = db.relationship('Cliente', backref='ventas')
     
     def __init__(self, id_cliente, numerofactura, fechafactura, rif, cliente, 
                  montoTotal, base, iva, exentas=0.00, cajaregistradora=None, 
-                 porcentaje_iva=16.00):
+                 porcentaje_iva=16.00, documento='Factura'):
         self.id_cliente = id_cliente
         self.numerofactura = numerofactura
         self.fechar = datetime.utcnow().date()
@@ -136,6 +137,7 @@ class LibroVenta(db.Model):
         self.cajaregistradora = cajaregistradora
         self.porcentaje_iva = porcentaje_iva
         self.iva = iva
+        self.documento = documento
     
     def __repr__(self):
         return f'<LibroVenta {self.numerofactura} - {self.cliente}>'
@@ -158,7 +160,8 @@ class LibroVenta(db.Model):
             'cliente_info': {
                 'nombre': self.cliente_rel.nombre if self.cliente_rel else None,
                 'telefono': self.cliente_rel.telefono if self.cliente_rel else None
-            }
+            },
+            'documento': self.documento
         }
 
 
