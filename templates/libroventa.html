@@ -64,6 +64,33 @@
             }
             $('#sidebarMenu').metisMenu();
 
+            // Función para convertir fecha de dd-mm-yyyy a formato comparable
+            function parseDate(dateStr) {
+                if (!dateStr) return null;
+                var parts = dateStr.split('-');
+                return new Date(parts[2], parts[1] - 1, parts[0]);
+            }
+
+            // Añadir el filtro de fecha personalizado
+            $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                var startDate = $('#startDate').val();
+                var endDate = $('#endDate').val();
+                var dateColumn = data[1]; // Índice de la columna de fecha
+
+                if (!startDate && !endDate) return true;
+                if (startDate && !endDate) return true;
+                if (!startDate && endDate) return true;
+
+                var date = parseDate(dateColumn);
+                var start = startDate ? new Date(startDate) : null;
+                var end = endDate ? new Date(endDate) : null;
+
+                if (start && end) {
+                    return date >= start && date <= end;
+                }
+                return true;
+            });
+
             // Inicialización de DataTable con configuración para exportación
             var table = $('#example2').DataTable({
                 lengthChange: false,
@@ -72,38 +99,51 @@
                     {
                         extend: 'copy',
                         exportOptions: {
-                            columns: ':not(:last-child)' // Excluye la última columna (acciones)
+                            columns: ':not(:last-child)'
                         }
                     },
                     {
                         extend: 'excel',
                         exportOptions: {
-                            columns: ':not(:last-child)' // Excluye la última columna
+                            columns: ':not(:last-child)'
                         }
                     },
                     {
                         extend: 'pdf',
                         exportOptions: {
-                            columns: ':not(:last-child)' // Excluye la última columna
+                            columns: ':not(:last-child)'
                         }
                     },
                     {
                         extend: 'print',
                         exportOptions: {
-                            columns: ':not(:last-child)' // Excluye la última columna
+                            columns: ':not(:last-child)'
                         }
                     }
                 ],
                 columnDefs: [
                     {
-                        targets: -1, // Última columna
-                        orderable: false, // No ordenable
-                        searchable: false // No buscable
+                        targets: -1,
+                        orderable: false,
+                        searchable: false
                     }
-                ]
+                ],
+                order: [[1, 'desc']] // Ordenar por fecha por defecto
             });
             
             table.buttons().container().appendTo('#example2_wrapper .col-md-6:eq(0)');
+
+            // Manejar el evento de cambio en los campos de fecha
+            $('#startDate, #endDate').on('change', function() {
+                if ($('#startDate').val() && $('#endDate').val()) {
+                    table.draw();
+                }
+            });
+
+            // Manejar la búsqueda en tiempo real
+            $('#searchInput').on('keyup', function() {
+                table.search(this.value).draw();
+            });
         });
     </script>
 </body>
