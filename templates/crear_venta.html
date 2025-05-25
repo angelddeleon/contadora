@@ -30,7 +30,8 @@
                 <div class="card-body p-4">
                     <h5 class="card-title">Nueva Venta</h5>
                     <hr/>
-                    <form method="POST" action="{{ url_for('main.crear_venta') }}">
+                    <form method="POST" action="{{ url_for('main.crear_venta', cliente_id=request.args.get('cliente_id')) }}">
+                        <input type="hidden" name="cliente_id" value="{{ request.args.get('cliente_id') }}">
                         <div class="form-body mt-4">
                             <div class="row">
                                 <div class="col-lg-6">
@@ -57,27 +58,16 @@
                                 <div class="col-lg-6">
                                     <div class="mb-3">
                                         <label for="cliente" class="form-label">Cliente</label>
-                                        <select class="form-select" id="cliente" name="cliente" required>
-                                            <option value="">Seleccione un cliente</option>
-                                            {% for cliente in clientes %}
-                                            <option value="{{ cliente.id_cliente }}" data-rif="{{ cliente.rif }}" data-nombre="{{ cliente.nombre }}">{{ cliente.nombre }}</option>
-                                            {% endfor %}
-                                        </select>
+                                        <input type="text" class="form-control" id="cliente" name="cliente" required>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="row">
-                                <div class="col-lg-6">
+                                <div class="col-lg-12">
                                     <div class="mb-3">
                                         <label for="rif" class="form-label">RIF</label>
-                                        <input type="text" class="form-control" id="rif" name="rif" readonly required>
-                                    </div>
-                                </div>
-                                <div class="col-lg-6">
-                                    <div class="mb-3">
-                                        <label for="nombre_cliente" class="form-label">Nombre</label>
-                                        <input type="text" class="form-control" id="nombre_cliente" name="nombre_cliente" readonly required>
+                                        <input type="text" class="form-control" id="rif" name="rif" required>
                                     </div>
                                 </div>
                             </div>
@@ -139,13 +129,6 @@
 
     <script>
         $(document).ready(function() {
-            // Actualizar RIF y nombre cuando se seleccione un cliente
-            $('#cliente').on('change', function() {
-                var selectedOption = $(this).find('option:selected');
-                $('#rif').val(selectedOption.data('rif'));
-                $('#nombre_cliente').val(selectedOption.data('nombre'));
-            });
-
             // Calcular IVA automáticamente cuando cambie la base imponible
             $('#base').on('input', function() {
                 var base = parseFloat($(this).val()) || 0;

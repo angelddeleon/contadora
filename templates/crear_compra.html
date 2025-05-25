@@ -29,7 +29,8 @@
                 <div class="card-body p-4">
                     <h5 class="card-title">Nueva Compra</h5>
                     <hr/>
-                    <form method="POST" action="{{ url_for('main.crear_compra') }}">
+                    <form method="POST" action="{{ url_for('main.crear_compra', cliente_id=request.args.get('cliente_id')) }}">
+                        <input type="hidden" name="cliente_id" value="{{ request.args.get('cliente_id') }}">
                         <div class="form-body mt-4">
                             <div class="row">
                                 <div class="col-lg-6">
