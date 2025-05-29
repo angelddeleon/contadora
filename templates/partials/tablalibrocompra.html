@@ -8,6 +8,9 @@
             <div class="d-flex align-items-center gap-2">
                 <input type="date" class="form-control radius-30" id="startDate" placeholder="Fecha Inicio">
                 <input type="date" class="form-control radius-30" id="endDate" placeholder="Fecha Fin">
+                <button class="btn btn-secondary radius-30" id="clearFilters">
+                    <i class="bx bx-reset"></i> Limpiar Filtros
+                </button>
             </div>
             <div class="ms-auto">
                 <a href="{{ url_for('main.crear_compra', cliente_id=cliente.id_cliente) }}" class="btn btn-primary radius-30 mt-2 mt-lg-0">
