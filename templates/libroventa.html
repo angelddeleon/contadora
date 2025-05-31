@@ -51,6 +51,7 @@
             {
                 idfacturaventa: {{ venta.idfacturaventa }},
                 numerofactura: "{{ venta.numerofactura }}",
+                numerocontrol: "{{ venta.numerocontrol or '' }}",
                 fechafactura: "{{ venta.fechafactura.strftime('%Y-%m-%d') }}",
                 cliente: "{{ venta.cliente|replace('"', '\\"') }}",
                 rif: "{{ venta.rif }}",
@@ -332,7 +333,7 @@
                     var fecha = formatDate(venta.fechafactura);
                     var facturaDesde = venta.numerofactura;
                     var facturaHasta = venta.numerofactura;
-                    var control = venta.numerofactura;
+                    var control = venta.numerocontrol || '';
                     var nombreCliente = venta.cliente;
                     var rif = venta.rif;
                     var totalVenta = parseFloat(venta.montoTotal);

@@ -23,6 +23,7 @@
                 <thead class="table-light">
                     <tr>
                         <th>N° Factura</th>
+                        <th>N° Control</th>
                         <th>Fecha Factura</th>
                         <th>RIF</th>
                         <th>Cliente</th>
@@ -44,6 +45,7 @@
                                 </div>
                             </div>
                         </td>
+                        <td>{{ venta.numerocontrol }}</td>
                         <td>{{ venta.fechafactura.strftime('%d-%m-%Y') }}</td>
                         <td>{{ venta.rif }}</td>
                         <td>{{ venta.cliente }}</td>
