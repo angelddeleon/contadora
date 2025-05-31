@@ -43,6 +43,35 @@
             {% include 'partials/tablalibroventa.html' %}
         </div>
     </div>
+
+    <!-- Script para pasar datos de ventas a JavaScript -->
+    <script type="text/javascript">
+        window.ventasData = [
+            {% for venta in ventas %}
+            {
+                idfacturaventa: {{ venta.idfacturaventa }},
+                numerofactura: "{{ venta.numerofactura }}",
+                fechafactura: "{{ venta.fechafactura.strftime('%Y-%m-%d') }}",
+                cliente: "{{ venta.cliente|replace('"', '\\"') }}",
+                rif: "{{ venta.rif }}",
+                montoTotal: {{ venta.montoTotal }},
+                exentas: {{ venta.exentas }},
+                base: {{ venta.base }},
+                iva: {{ venta.iva }},
+                porcentaje_iva: {{ venta.porcentaje_iva }},
+                cajaregistradora: "{{ venta.cajaregistradora or '' }}",
+                documento: "{{ venta.documento }}"
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ];
+        
+        window.clienteData = {
+            nombre: "{% if cliente %}{{ cliente.nombre|replace('"', '\\"') }}{% else %}TODOS LOS CLIENTES{% endif %}",
+            rif: "{% if cliente %}{{ cliente.rif }}{% else %}N/A{% endif %}",
+            direccion: "{% if cliente %}{{ cliente.direccion|replace('"', '\\"') }}{% else %}N/A{% endif %}"
+        };
+    </script>
+
     <!-- Bootstrap JS -->
     <script src="{{ url_for('static', filename='assets/js/bootstrap.bundle.min.js') }}"></script>
     <!--plugins-->
@@ -72,6 +101,24 @@
                 return new Date(parts[2], parts[1] - 1, parts[0], 0, 0, 0);
             }
 
+            // Función para formatear fecha de YYYY-MM-DD a DD/MM/YYYY
+            function formatDate(dateStr) {
+                if (!dateStr) return '';
+                var date = new Date(dateStr);
+                var day = String(date.getDate()).padStart(2, '0');
+                var month = String(date.getMonth() + 1).padStart(2, '0');
+                var year = date.getFullYear();
+                return `${day}/${month}/${year}`;
+            }
+
+            // Función para formatear número con separadores de miles
+            function formatNumber(num) {
+                return parseFloat(num).toLocaleString('es-ES', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+
             // Añadir el filtro de fecha personalizado
             $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
                 var startDate = $('#startDate').val();
@@ -91,6 +138,294 @@
                 }
                 return true;
             });
+
+            // Función para generar el reporte de impresión
+            function generatePrintReport() {
+                var table = $('#example2').DataTable();
+                var filteredData = [];
+                
+                // Obtener datos filtrados de la tabla
+                table.rows({ search: 'applied' }).every(function(rowIdx, tableLoop, rowLoop) {
+                    var data = this.data();
+                    // Buscar la venta correspondiente en ventasData
+                    // Asumiendo que la columna del número de factura está en el índice correcto
+                    var numeroFactura = data[2]; // Ajusta este índice según tu tabla
+                    var venta = window.ventasData.find(v => v.numerofactura === numeroFactura);
+                    if (venta) {
+                        filteredData.push(venta);
+                    }
+                });
+
+                // Si no se encontraron datos filtrados, usar todos los datos
+                if (filteredData.length === 0) {
+                    filteredData = window.ventasData;
+                }
+
+                // Información del cliente
+                var clienteInfo = window.clienteData;
+                
+                // Obtener fechas del filtro para el período
+                var startDate = $('#startDate').val();
+                var endDate = $('#endDate').val();
+                var monthNames = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
+                    "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+                
+                var periodText = "TODOS LOS PERÍODOS";
+                if (startDate && endDate) {
+                    var start = new Date(startDate);
+                    var end = new Date(endDate);
+                    periodText = monthNames[start.getMonth()] + " - " + start.getFullYear() + 
+                               "  período desde " + formatDate(startDate.split('-').reverse().join('-')) + 
+                               " hasta " + formatDate(endDate.split('-').reverse().join('-'));
+                } else if (filteredData.length > 0) {
+                    // Si no hay filtro de fecha, usar el rango de fechas de los datos
+                    var fechas = filteredData.map(v => new Date(v.fechafactura)).sort();
+                    var fechaInicio = fechas[0];
+                    var fechaFin = fechas[fechas.length - 1];
+                    periodText = monthNames[fechaInicio.getMonth()] + " - " + fechaInicio.getFullYear() + 
+                               "  período desde " + formatDate(fechaInicio.toISOString().split('T')[0]) + 
+                               " hasta " + formatDate(fechaFin.toISOString().split('T')[0]);
+                }
+
+                var reportHTML = `
+                <!DOCTYPE html>
+                <html lang="es">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Libro de Ventas</title>
+                    <style>
+                        body {
+                            font-family: 'Courier New', Courier, monospace;
+                            font-size: 12px;
+                            line-height: 1.2;
+                            margin: 20px;
+                        }
+                        .header {
+                            display: flex;
+                            justify-content: space-between;
+                            margin-bottom: 20px;
+                        }
+                        .company-info {
+                            text-align: left;
+                        }
+                        .title {
+                            text-align: right;
+                            font-weight: bold;
+                            font-size: 16px;
+                            margin-top: 50px;
+                        }
+                        .period-info {
+                            margin-bottom: 15px;
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                        }
+                        th, td {
+                            border-top: 1px solid #000;
+                            border-bottom: 1px solid #000;
+                            padding: 3px 5px;
+                            text-align: left;
+                            font-size: 11px;
+                        }
+                        th {
+                            font-weight: bold;
+                        }
+                        .subtotal, .total {
+                            font-weight: bold;
+                        }
+                        .right-align {
+                            text-align: right;
+                        }
+                        .center-align {
+                            text-align: center;
+                        }
+                        .header-group {
+                            text-align: center;
+                            font-weight: bold;
+                        }
+                        .multi-header {
+                            border-bottom: none;
+                        }
+                        .sub-header {
+                            border-top: none;
+                        }
+                        @media print {
+                            body { margin: 0; }
+                            .no-print { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <div class="company-info">
+                            <div style="font-weight: bold;">${clienteInfo.nombre}</div>
+                            <div>R.I.F. : ${clienteInfo.rif}</div>
+                            <div>Direccion : ${clienteInfo.direccion}</div>
+                            <div class="period-info">
+                                <div>Mes : ${periodText}</div>
+                                <div>Pag:1</div>
+                            </div>
+                        </div>
+                        <div class="title" style="text-align: center;">
+                            Libro de Ventas
+                        </div>
+                    </div>
+
+                    <table>
+                        <tr>
+                            <th colspan="2" class="multi-header">No.</th>
+                            <th colspan="5" class="multi-header">DATOS DE CLIENTE</th>
+                            <th rowspan="2">TOTAL VENTAS<br>INCLUYENDO<br>I.V.A.</th>
+                            <th rowspan="2">EXENTOS<br>NO<br>GRAVADO</th>
+                            <th colspan="3" class="multi-header">CON DERECHO A CREDITO</th>
+                            <th colspan="4" class="multi-header"></th>
+                        </tr>
+                        <tr>
+                            <th class="sub-header">Ope</th>
+                            <th class="sub-header">Fecha</th>
+                            <th colspan="2" class="sub-header">FACTURA</th>
+                            <th class="sub-header">Control</th>
+                            <th class="sub-header">Nombre<br>Razon Social</th>
+                            <th class="sub-header">Rif</th>
+                            <th colspan="2" class="sub-header">ALICUOTA REDUCIDA</th>
+                            <th class="sub-header">BASE</th>
+                            <th colspan="2" class="sub-header">ALICUOTA NACIONAL</th>
+                            <th class="sub-header">Comprobante</th>
+                            <th class="sub-header">Retencion</th>
+                        </tr>
+                        <tr>
+                            <th></th>
+                            <th></th>
+                            <th>Desde</th>
+                            <th>Hasta</th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th>BASE</th>
+                            <th>%</th>
+                            <th>I.V.A.</th>
+                            <th>BASE</th>
+                            <th>%</th>
+                            <th>I.V.A.</th>
+                            <th></th>
+                        </tr>`;
+
+                // Variables para totales
+                var totalVentas = 0;
+                var totalExentos = 0;
+                var totalBaseReducida = 0;
+                var totalIvaReducido = 0;
+                var totalBaseNacional = 0;
+                var totalIvaNacional = 0;
+                var totalRetencion = 0;
+
+                // Ordenar datos por fecha
+                filteredData.sort((a, b) => new Date(a.fechafactura) - new Date(b.fechafactura));
+
+                // Generar filas de datos usando los datos reales del modelo
+                filteredData.forEach(function(venta, index) {
+                    var operacion = index + 1;
+                    var fecha = formatDate(venta.fechafactura);
+                    var facturaDesde = venta.numerofactura;
+                    var facturaHasta = venta.numerofactura;
+                    var control = venta.numerofactura;
+                    var nombreCliente = venta.cliente;
+                    var rif = venta.rif;
+                    var totalVenta = parseFloat(venta.montoTotal);
+                    var exento = parseFloat(venta.exentas);
+                    var baseReducida = 0; // No hay alícuota reducida en tu modelo
+                    var porcentajeReducido = 0;
+                    var ivaReducido = 0;
+                    var baseNacional = parseFloat(venta.base);
+                    var porcentajeNacional = parseFloat(venta.porcentaje_iva);
+                    var ivaNacional = parseFloat(venta.iva);
+                    var comprobante = venta.cajaregistradora || '';
+                    var retencion = ivaNacional * 0.12; // Asumiendo retención 12% sobre el IVA
+
+                    // Acumular totales
+                    totalVentas += totalVenta;
+                    totalExentos += exento;
+                    totalBaseReducida += baseReducida;
+                    totalIvaReducido += ivaReducido;
+                    totalBaseNacional += baseNacional;
+                    totalIvaNacional += ivaNacional;
+                    totalRetencion += retencion;
+
+                    reportHTML += `
+                        <tr>
+                            <td>${operacion}</td>
+                            <td>${fecha}</td>
+                            <td>${facturaDesde}</td>
+                            <td></td>
+                            <td>${control}</td>
+                            <td>${nombreCliente}</td>
+                            <td>${rif}</td>
+                            <td class="right-align">${formatNumber(totalVenta)}</td>
+                            <td class="right-align">${formatNumber(exento)}</td>
+                            <td class="right-align">${formatNumber(baseReducida)}</td>
+                            <td class="center-align">${porcentajeReducido}</td>
+                            <td class="right-align">${formatNumber(ivaReducido)}</td>
+                            <td class="right-align">${formatNumber(baseNacional)}</td>
+                            <td class="center-align">${porcentajeNacional}</td>
+                            <td class="right-align">${formatNumber(ivaNacional)}</td>
+                            <td>${comprobante}</td>
+                            <td class="right-align">${formatNumber(retencion)}</td>
+                        </tr>`;
+                });
+
+                // Agregar filas de totales
+                reportHTML += `
+                        <tr class="subtotal">
+                            <td colspan="7" class="right-align">SUB-TOTALES:</td>
+                            <td class="right-align">${formatNumber(totalVentas)}</td>
+                            <td class="right-align">${formatNumber(totalExentos)}</td>
+                            <td class="right-align">${formatNumber(totalBaseReducida)}</td>
+                            <td></td>
+                            <td class="right-align">${formatNumber(totalIvaReducido)}</td>
+                            <td class="right-align">${formatNumber(totalBaseNacional)}</td>
+                            <td></td>
+                            <td class="right-align">${formatNumber(totalIvaNacional)}</td>
+                            <td></td>
+                            <td class="right-align">${formatNumber(totalRetencion)}</td>
+                        </tr>
+                        <tr class="total">
+                            <td colspan="7" class="right-align">TOTALES:</td>
+                            <td class="right-align">${formatNumber(totalVentas)}</td>
+                            <td class="right-align">${formatNumber(totalExentos)}</td>
+                            <td class="right-align">${formatNumber(totalBaseReducida)}</td>
+                            <td></td>
+                            <td class="right-align">${formatNumber(totalIvaReducido)}</td>
+                            <td class="right-align">${formatNumber(totalBaseNacional)}</td>
+                            <td></td>
+                            <td class="right-align">${formatNumber(totalIvaNacional)}</td>
+                            <td></td>
+                            <td class="right-align">${formatNumber(totalRetencion)}</td>
+                        </tr>
+                    </table>
+                </body>
+                </html>`;
+
+                return reportHTML;
+            }
+
+            // Función personalizada para imprimir
+            function customPrint() {
+                var printWindow = window.open('', '_blank');
+                var reportHTML = generatePrintReport();
+                
+                printWindow.document.write(reportHTML);
+                printWindow.document.close();
+                
+                // Esperar a que se cargue el contenido y luego imprimir
+                printWindow.onload = function() {
+                    printWindow.print();
+                    printWindow.close();
+                };
+            }
 
             // Inicialización de DataTable con configuración para exportación
             var table = $('#example2').DataTable({
@@ -116,9 +451,9 @@
                         }
                     },
                     {
-                        extend: 'print',
-                        exportOptions: {
-                            columns: ':not(:last-child)'
+                        text: 'Print',
+                        action: function (e, dt, node, config) {
+                            customPrint();
                         }
                     }
                 ],
