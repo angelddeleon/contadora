@@ -107,6 +107,7 @@ class LibroVenta(db.Model):
     idfacturaventa = db.Column(db.Integer, primary_key=True)
     id_cliente = db.Column(db.Integer, db.ForeignKey('clientes.id_cliente'), nullable=False)
     numerofactura = db.Column(db.String(50), unique=True, nullable=False)
+    numerocontrol = db.Column(db.String(50))  # Número de control de la factura
     fechar = db.Column(db.Date, default=datetime.utcnow, nullable=False)  # Fecha de registro
     fechafactura = db.Column(db.Date, nullable=False)  # Fecha de la factura
     rif = db.Column(db.String(20), nullable=False)
@@ -124,9 +125,10 @@ class LibroVenta(db.Model):
     
     def __init__(self, id_cliente, numerofactura, fechafactura, rif, cliente, 
                  montoTotal, base, iva, exentas=0.00, cajaregistradora=None, 
-                 porcentaje_iva=16.00, documento='Factura'):
+                 porcentaje_iva=16.00, documento='Factura', numerocontrol=None):
         self.id_cliente = id_cliente
         self.numerofactura = numerofactura
+        self.numerocontrol = numerocontrol
         self.fechar = datetime.utcnow().date()
         self.fechafactura = fechafactura
         self.rif = rif
@@ -147,6 +149,7 @@ class LibroVenta(db.Model):
             'idfacturaventa': self.idfacturaventa,
             'id_cliente': self.id_cliente,
             'numerofactura': self.numerofactura,
+            'numerocontrol': self.numerocontrol,
             'fechar': self.fechar.isoformat(),
             'fechafactura': self.fechafactura.isoformat(),
             'rif': self.rif,

@@ -145,10 +145,21 @@ def editar_venta(venta_id):
     venta = LibroVenta.query.get_or_404(venta_id)
     if request.method == 'POST':
         try:
-            # Aquí irá la lógica para actualizar la venta
+            venta.numerofactura = request.form['numerofactura']
+            venta.numerocontrol = request.form.get('numerocontrol', '')
+            venta.fechafactura = datetime.strptime(request.form['fechafactura'], '%Y-%m-%d')
+            venta.rif = request.form['rif']
+            venta.cliente = request.form['cliente']
+            venta.montoTotal = float(request.form['montoTotal'])
+            venta.base = float(request.form['base'])
+            venta.iva = float(request.form['iva'])
+            venta.exentas = float(request.form['exentas']) if request.form.get('exentas') else 0.00
+            
+            db.session.commit()
             flash('Venta actualizada con éxito', 'success')
             return redirect(url_for('main.libroventa'))
         except Exception as e:
+            db.session.rollback()
             current_app.logger.error(f'Error al editar venta: {str(e)}')
             flash('Error al editar la venta', 'danger')
     return render_template('editar_venta.html', venta=venta)
@@ -328,7 +339,8 @@ def crear_venta():
                     base=float(request.form['base']),
                     iva=float(request.form['iva']),
                     exentas=float(request.form['exentas']) if request.form.get('exentas') else 0.00,
-                    documento='Factura'
+                    documento='Factura',
+                    numerocontrol=request.form.get('numerocontrol', '')
                 )
                 
                 db.session.add(nueva_venta)
