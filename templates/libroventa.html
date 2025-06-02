@@ -124,7 +124,7 @@
             $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
                 var startDate = $('#startDate').val();
                 var endDate = $('#endDate').val();
-                var dateColumn = data[1]; // Índice de la columna de fecha
+                var dateColumn = data[2]; // Índice de la columna de fecha factura
 
                 if (!startDate && !endDate) return true;
                 if (startDate && !endDate) return true;
@@ -140,7 +140,45 @@
                 return true;
             });
 
-            // Función para generar el reporte de impresión
+            function exportToWord() {
+                // Generar el HTML exacto del reporte de impresión
+                var reportHTML = generatePrintReport();
+                
+                // Mostrar carga mientras se procesa
+                Swal.fire({
+                    title: 'Generando documento',
+                    html: 'Por favor espere...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                // Enviar al servidor para convertir a Word
+                $.ajax({
+                    url: '/exportar_libro_ventas_word',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        html_content: reportHTML,
+                        cliente: window.clienteData
+                    }),
+                    success: function(response) {
+                        Swal.close();
+                        if (response.error) {
+                            Swal.fire('Error', response.error, 'error');
+                        } else {
+                            // Descargar el archivo generado
+                            window.location.href = '/descargar_word/' + response.filename;
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.fire('Error', 'No se pudo generar el documento Word: ' + xhr.responseText, 'error');
+                    }
+                });
+            }
+
+            // Función para generar el reporte de impresión con formato exacto
             function generatePrintReport() {
                 var table = $('#example2').DataTable();
                 var filteredData = [];
@@ -149,8 +187,7 @@
                 table.rows({ search: 'applied' }).every(function(rowIdx, tableLoop, rowLoop) {
                     var data = this.data();
                     // Buscar la venta correspondiente en ventasData
-                    // Asumiendo que la columna del número de factura está en el índice correcto
-                    var numeroFactura = data[2]; // Ajusta este índice según tu tabla
+                    var numeroFactura = data[0]; // Ajusta este índice según tu tabla
                     var venta = window.ventasData.find(v => v.numerofactura === numeroFactura);
                     if (venta) {
                         filteredData.push(venta);
@@ -171,12 +208,12 @@
                 var monthNames = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
                     "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
                 
-                var periodText = "TODOS LOS PERÍODOS";
+                var periodText = "ABRIL - 2025  periodo desde 01/04/2025 hasta 30/04/2025";
                 if (startDate && endDate) {
                     var start = new Date(startDate);
                     var end = new Date(endDate);
                     periodText = monthNames[start.getMonth()] + " - " + start.getFullYear() + 
-                               "  período desde " + formatDate(startDate.split('-').reverse().join('-')) + 
+                               "  periodo desde " + formatDate(startDate.split('-').reverse().join('-')) + 
                                " hasta " + formatDate(endDate.split('-').reverse().join('-'));
                 } else if (filteredData.length > 0) {
                     // Si no hay filtro de fecha, usar el rango de fechas de los datos
@@ -184,10 +221,11 @@
                     var fechaInicio = fechas[0];
                     var fechaFin = fechas[fechas.length - 1];
                     periodText = monthNames[fechaInicio.getMonth()] + " - " + fechaInicio.getFullYear() + 
-                               "  período desde " + formatDate(fechaInicio.toISOString().split('T')[0]) + 
+                               "  periodo desde " + formatDate(fechaInicio.toISOString().split('T')[0]) + 
                                " hasta " + formatDate(fechaFin.toISOString().split('T')[0]);
                 }
 
+                // HTML con formato exacto del reporte de ventas
                 var reportHTML = `
                 <!DOCTYPE html>
                 <html lang="es">
@@ -203,25 +241,33 @@
                             margin: 20px;
                         }
                         .header {
-                            display: flex;
-                            justify-content: space-between;
                             margin-bottom: 20px;
                         }
                         .company-info {
                             text-align: left;
+                            float: left;
+                            width: 60%;
                         }
                         .title {
-                            text-align: right;
+                            text-align: center;
                             font-weight: bold;
                             font-size: 16px;
-                            margin-top: 50px;
+                            margin-top: 10px;
                         }
-                        .period-info {
-                            margin-bottom: 15px;
+                        .clearfix:after {
+                            content: "";
+                            display: table;
+                            clear: both;
+                        }
+                        .divider {
+                            border-top: 1px solid #000;
+                            margin: 10px 0;
+                            clear: both;
                         }
                         table {
                             width: 100%;
                             border-collapse: collapse;
+                            margin-top: 20px;
                         }
                         th, td {
                             border-top: 1px solid #000;
@@ -242,9 +288,11 @@
                         .center-align {
                             text-align: center;
                         }
-                        .header-group {
+                        .section-header {
                             text-align: center;
+                            border-bottom: 1px solid #000;
                             font-weight: bold;
+                            padding: 3px 0;
                         }
                         .multi-header {
                             border-bottom: none;
@@ -259,20 +307,21 @@
                     </style>
                 </head>
                 <body>
-                    <div class="header">
+                    <div class="header clearfix">
                         <div class="company-info">
                             <div style="font-weight: bold;">${clienteInfo.nombre}</div>
                             <div>R.I.F. : ${clienteInfo.rif}</div>
                             <div>Direccion : ${clienteInfo.direccion}</div>
-                            <div class="period-info">
-                                <div>Mes : ${periodText}</div>
-                                <div>Pag:1</div>
-                            </div>
-                        </div>
-                        <div class="title" style="text-align: center;">
-                            Libro de Ventas
+                            <div>Mes : ${periodText}</div>
+                            <div>Pag:1</div>
                         </div>
                     </div>
+
+                    <div class="title">
+                        Libro de Ventas
+                    </div>
+
+                    <div class="divider"></div>
 
                     <table>
                         <tr>
@@ -361,7 +410,7 @@
                             <td>${operacion}</td>
                             <td>${fecha}</td>
                             <td>${facturaDesde}</td>
-                            <td></td>
+                            <td>${facturaHasta}</td>
                             <td>${control}</td>
                             <td>${nombreCliente}</td>
                             <td>${rif}</td>
@@ -456,6 +505,12 @@
                         action: function (e, dt, node, config) {
                             customPrint();
                         }
+                    },
+                    {
+                        text: 'Word',
+                        action: function (e, dt, node, config) {
+                            exportToWord();
+                        }
                     }
                 ],
                 columnDefs: [
@@ -465,7 +520,7 @@
                         searchable: false
                     }
                 ],
-                order: [[1, 'desc']] // Ordenar por fecha por defecto
+                order: [[2, 'desc']] // Ordenar por fecha factura por defecto
             });
             
             table.buttons().container().appendTo('#example2_wrapper .col-md-6:eq(0)');
@@ -480,6 +535,14 @@
             // Manejar la búsqueda en tiempo real
             $('#searchInput').on('keyup', function() {
                 table.search(this.value).draw();
+            });
+
+            // Manejar el botón de limpiar filtros
+            $('#clearFilters').on('click', function() {
+                $('#startDate').val('');
+                $('#endDate').val('');
+                $('#searchInput').val('');
+                table.search('').draw();
             });
         });
     </script>
