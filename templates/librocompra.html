@@ -43,6 +43,37 @@
             {% include 'partials/tablalibrocompra.html' %}
         </div>
     </div>
+
+    <!-- Script para pasar datos de compras a JavaScript -->
+    <script type="text/javascript">
+        window.comprasData = [
+            {% for compra in compras %}
+            {
+                idfacturacompra: {{ compra.idfacturacompra }},
+                numerofactura: "{{ compra.numerofactura }}",
+                control: "{{ compra.control or '' }}",
+                fechafactura: "{{ compra.fechafactura.strftime('%Y-%m-%d') }}",
+                fechar: "{{ compra.fechar.strftime('%Y-%m-%d') }}",
+                provedor: "{{ compra.provedor|replace('"', '\\"') }}",
+                rif: "{{ compra.rif }}",
+                montoTotal: {{ compra.montoTotal }},
+                exentas: {{ compra.exentas }},
+                base: {{ compra.base }},
+                iva: {{ compra.iva }},
+                porcentaje_iva: {{ compra.porcentaje_iva }},
+                facturapolar: {{ compra.facturapolar|tojson }},
+                documento: "{{ compra.documento or 'FAC' }}"
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ];
+        
+        window.clienteData = {
+            nombre: "{% if cliente %}{{ cliente.nombre|replace('"', '\\"') }}{% else %}TODOS LOS CLIENTES{% endif %}",
+            rif: "{% if cliente %}{{ cliente.rif }}{% else %}N/A{% endif %}",
+            direccion: "{% if cliente %}{{ cliente.direccion|replace('"', '\\"') }}{% else %}N/A{% endif %}"
+        };
+    </script>
+
     <!-- Bootstrap JS -->
     <script src="{{ url_for('static', filename='assets/js/bootstrap.bundle.min.js') }}"></script>
     <!--plugins-->
@@ -72,6 +103,24 @@
                 return new Date(parts[2], parts[1] - 1, parts[0], 0, 0, 0);
             }
 
+            // Función para formatear fecha de YYYY-MM-DD a DD/MM/YYYY
+            function formatDate(dateStr) {
+                if (!dateStr) return '';
+                var date = new Date(dateStr);
+                var day = String(date.getDate()).padStart(2, '0');
+                var month = String(date.getMonth() + 1).padStart(2, '0');
+                var year = date.getFullYear();
+                return `${day}/${month}/${year}`;
+            }
+
+            // Función para formatear número con separadores de miles
+            function formatNumber(num) {
+                return parseFloat(num).toLocaleString('es-ES', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+
             // Añadir el filtro de fecha personalizado
             $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
                 var startDate = $('#startDate').val();
@@ -91,6 +140,333 @@
                 }
                 return true;
             });
+
+            function exportToWord() {
+                // Generar el HTML exacto del reporte de impresión
+                var reportHTML = generatePrintReport();
+                
+                // Mostrar carga mientras se procesa
+                Swal.fire({
+                    title: 'Generando documento',
+                    html: 'Por favor espere...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                // Enviar al servidor para convertir a Word
+                $.ajax({
+                    url: '/exportar_libro_compras_word',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        html_content: reportHTML,
+                        cliente: window.clienteData
+                    }),
+                    success: function(response) {
+                        Swal.close();
+                        if (response.error) {
+                            Swal.fire('Error', response.error, 'error');
+                        } else {
+                            // Descargar el archivo generado
+                            window.location.href = '/descargar_word/' + response.filename;
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.fire('Error', 'No se pudo generar el documento Word: ' + xhr.responseText, 'error');
+                    }
+                });
+            }
+
+            // Función para generar el reporte de impresión con formato exacto
+            function generatePrintReport() {
+                var table = $('#example2').DataTable();
+                var filteredData = [];
+                
+                // Obtener datos filtrados de la tabla
+                table.rows({ search: 'applied' }).every(function(rowIdx, tableLoop, rowLoop) {
+                    var data = this.data();
+                    // Buscar la compra correspondiente en comprasData
+                    var numeroFactura = data[0]; // Ajusta este índice según tu tabla
+                    var compra = window.comprasData.find(c => c.numerofactura === numeroFactura);
+                    if (compra) {
+                        filteredData.push(compra);
+                    }
+                });
+
+                // Si no se encontraron datos filtrados, usar todos los datos
+                if (filteredData.length === 0) {
+                    filteredData = window.comprasData;
+                }
+
+                // Información del cliente
+                var clienteInfo = window.clienteData;
+                
+                // Obtener fechas del filtro para el período
+                var startDate = $('#startDate').val();
+                var endDate = $('#endDate').val();
+                var monthNames = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
+                    "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+                
+                var periodText = "ABRIL - 2025  periodo desde 01/04/2025 hasta 30/04/2025";
+                if (startDate && endDate) {
+                    var start = new Date(startDate);
+                    var end = new Date(endDate);
+                    periodText = monthNames[start.getMonth()] + " - " + start.getFullYear() + 
+                               "  periodo desde " + formatDate(startDate.split('-').reverse().join('-')) + 
+                               " hasta " + formatDate(endDate.split('-').reverse().join('-'));
+                } else if (filteredData.length > 0) {
+                    // Si no hay filtro de fecha, usar el rango de fechas de los datos
+                    var fechas = filteredData.map(v => new Date(v.fechafactura)).sort();
+                    var fechaInicio = fechas[0];
+                    var fechaFin = fechas[fechas.length - 1];
+                    periodText = monthNames[fechaInicio.getMonth()] + " - " + fechaInicio.getFullYear() + 
+                               "  periodo desde " + formatDate(fechaInicio.toISOString().split('T')[0]) + 
+                               " hasta " + formatDate(fechaFin.toISOString().split('T')[0]);
+                }
+
+                // HTML con formato exacto del librocomprareporte.html
+                var reportHTML = `
+                <!DOCTYPE html>
+                <html lang="es">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Libro de Compras</title>
+                    <style>
+                        body {
+                            font-family: 'Courier New', Courier, monospace;
+                            font-size: 12px;
+                            line-height: 1.2;
+                            margin: 20px;
+                        }
+                        .header {
+                            margin-bottom: 20px;
+                        }
+                        .company-info {
+                            text-align: left;
+                            float: left;
+                            width: 60%;
+                        }
+                        .title {
+                            text-align: center;
+                            font-weight: bold;
+                            font-size: 16px;
+                            margin-top: 10px;
+                        }
+                        .clearfix:after {
+                            content: "";
+                            display: table;
+                            clear: both;
+                        }
+                        .divider {
+                            border-top: 1px solid #000;
+                            margin: 10px 0;
+                            clear: both;
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 20px;
+                        }
+                        th, td {
+                            border-top: 1px solid #000;
+                            border-bottom: 1px solid #000;
+                            padding: 3px 5px;
+                            text-align: left;
+                            font-size: 11px;
+                        }
+                        th {
+                            font-weight: bold;
+                        }
+                        .subtotal, .total {
+                            font-weight: bold;
+                        }
+                        .right-align {
+                            text-align: right;
+                        }
+                        .center-align {
+                            text-align: center;
+                        }
+                        .section-header {
+                            text-align: center;
+                            border-bottom: 1px solid #000;
+                            font-weight: bold;
+                            padding: 3px 0;
+                        }
+                        .multi-header {
+                            border-bottom: none;
+                        }
+                        .sub-header {
+                            border-top: none;
+                        }
+                        @media print {
+                            body { margin: 0; }
+                            .no-print { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header clearfix">
+                        <div class="company-info">
+                            <div style="font-weight: bold;">${clienteInfo.nombre}</div>
+                            <div>R.I.F. : ${clienteInfo.rif}</div>
+                            <div>Direccion : ${clienteInfo.direccion}</div>
+                            <div>Mes : ${periodText}</div>
+                            <div>Pag:1</div>
+                        </div>
+                    </div>
+
+                        <div class="title">
+                            Libro de Compras
+                        </div>
+
+                    <div class="divider"></div>
+
+                    <table>
+                        <tr>
+                            <th colspan="5" class="multi-header section-header">DATOS DE LAS FACTURA</th>
+                            <th rowspan="2"></th>
+                            <th rowspan="2" class="section-header">TOTAL COMPRAS<br>INCLUYENDO<br>I.V.A.</th>
+                            <th rowspan="2" class="section-header">SIN<br>DERECHO<br>A<br>CREDITO</th>
+                            <th colspan="5" class="multi-header section-header">CON DERECHO A CREDITO</th>
+                            <th colspan="2" class="multi-header"></th>
+                        </tr>
+                        <tr>
+                            <th class="sub-header">FECHA.</th>
+                            <th class="sub-header">FECHA<br>FACTURA</th>
+                            <th class="sub-header">FACTURA<br>NUMERO</th>
+                            <th class="sub-header">DOC</th>
+                            <th class="sub-header">CONTROL</th>
+                            <th class="sub-header">NOMBRE PROVEEDOR</th>
+                            <th class="sub-header">R.I.F.</th>
+                            <th colspan="2" class="sub-header center-align">IMPORTACION</th>
+                            <th colspan="2" class="sub-header center-align">NACIONAL</th>
+                            <th class="sub-header">Comprobante</th>
+                            <th class="sub-header">RETENCION</th>
+                        </tr>
+                        <tr>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th>BASE</th>
+                            <th>I.V.A.</th>
+                            <th>BASE</th>
+                            <th>I.V.A.</th>
+                            <th></th>
+                            <th></th>
+                        </tr>`;
+
+                // Variables para totales
+                var totalCompras = 0;
+                var totalExentos = 0;
+                var totalBaseImportacion = 0;
+                var totalIvaImportacion = 0;
+                var totalBaseNacional = 0;
+                var totalIvaNacional = 0;
+                var totalRetencion = 0;
+
+                // Ordenar datos por fecha
+                filteredData.sort((a, b) => new Date(a.fechafactura) - new Date(b.fechafactura));
+
+                // Generar filas de datos usando los datos reales del modelo
+                filteredData.forEach(function(compra) {
+                    var fechar = formatDate(compra.fechar);
+                    var fechafactura = formatDate(compra.fechafactura);
+                    var numerofactura = compra.numerofactura;
+                    var documento = compra.documento || 'FAC';
+                    var control = compra.control || '';
+                    var proveedor = compra.provedor;
+                    var rif = compra.rif;
+                    var montoTotal = parseFloat(compra.montoTotal);
+                    var exentas = parseFloat(compra.exentas);
+                    var baseImportacion = 0; // Asumimos que no hay importaciones
+                    var ivaImportacion = 0;
+                    var baseNacional = parseFloat(compra.base);
+                    var ivaNacional = parseFloat(compra.iva);
+                    var comprobante = compra.facturapolar ? 'POLAR' : '';
+                    var retencion = 0; // Asumimos que no hay retención por defecto
+
+                    // Acumular totales
+                    totalCompras += montoTotal;
+                    totalExentos += exentas;
+                    totalBaseImportacion += baseImportacion;
+                    totalIvaImportacion += ivaImportacion;
+                    totalBaseNacional += baseNacional;
+                    totalIvaNacional += ivaNacional;
+                    totalRetencion += retencion;
+
+                    reportHTML += `
+                        <tr>
+                            <td>${fechar}</td>
+                            <td>${fechafactura}</td>
+                            <td>${numerofactura}</td>
+                            <td>${documento}</td>
+                            <td>${control}</td>
+                            <td>${proveedor}</td>
+                            <td>${rif}</td>
+                            <td class="right-align">${formatNumber(montoTotal)}</td>
+                            <td class="right-align">${formatNumber(exentas)}</td>
+                            <td class="right-align">${formatNumber(baseImportacion)}</td>
+                            <td class="right-align">${formatNumber(ivaImportacion)}</td>
+                            <td class="right-align">${formatNumber(baseNacional)}</td>
+                            <td class="right-align">${formatNumber(ivaNacional)}</td>
+                            <td>${comprobante}</td>
+                            <td class="right-align">${formatNumber(retencion)}</td>
+                        </tr>`;
+                });
+
+                // Agregar filas de totales
+                reportHTML += `
+                        <tr class="subtotal">
+                            <td colspan="7" class="right-align">SUB-TOTALES:</td>
+                            <td class="right-align">${formatNumber(totalCompras)}</td>
+                            <td class="right-align">${formatNumber(totalExentos)}</td>
+                            <td class="right-align">${formatNumber(totalBaseImportacion)}</td>
+                            <td class="right-align">${formatNumber(totalIvaImportacion)}</td>
+                            <td class="right-align">${formatNumber(totalBaseNacional)}</td>
+                            <td class="right-align">${formatNumber(totalIvaNacional)}</td>
+                            <td></td>
+                            <td class="right-align">${formatNumber(totalRetencion)}</td>
+                        </tr>
+                        <tr class="total">
+                            <td colspan="7" class="right-align">TOTALES:</td>
+                            <td class="right-align">${formatNumber(totalCompras)}</td>
+                            <td class="right-align">${formatNumber(totalExentos)}</td>
+                            <td class="right-align">${formatNumber(totalBaseImportacion)}</td>
+                            <td class="right-align">${formatNumber(totalIvaImportacion)}</td>
+                            <td class="right-align">${formatNumber(totalBaseNacional)}</td>
+                            <td class="right-align">${formatNumber(totalIvaNacional)}</td>
+                            <td></td>
+                            <td class="right-align">${formatNumber(totalRetencion)}</td>
+                        </tr>
+                    </table>
+                </body>
+                </html>`;
+
+                return reportHTML;
+            }
+
+            // Función personalizada para imprimir
+            function customPrint() {
+                var printWindow = window.open('', '_blank');
+                var reportHTML = generatePrintReport();
+                
+                printWindow.document.write(reportHTML);
+                printWindow.document.close();
+                
+                // Esperar a que se cargue el contenido y luego imprimir
+                printWindow.onload = function() {
+                    printWindow.print();
+                    printWindow.close();
+                };
+            }
 
             // Inicialización de DataTable con configuración para exportación
             var table = $('#example2').DataTable({
@@ -116,9 +492,15 @@
                         }
                     },
                     {
-                        extend: 'print',
-                        exportOptions: {
-                            columns: ':not(:last-child)'
+                        text: 'Print',
+                        action: function (e, dt, node, config) {
+                            customPrint();
+                        }
+                    },
+                    {
+                        text: 'Word',
+                        action: function (e, dt, node, config) {
+                            exportToWord();
                         }
                     }
                 ],

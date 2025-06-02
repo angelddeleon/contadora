@@ -9,6 +9,8 @@ import re
 
 main_routes = Blueprint('main', __name__)
 
+
+
 # Decorador para verificar si el usuario es admin
 def admin_required(f):
     @wraps(f)
@@ -454,3 +456,390 @@ def editar_cliente(cliente_id):
         current_app.logger.error(f'Error al actualizar cliente: {str(e)}')
         flash('Error al actualizar el cliente', 'danger')
         return redirect(url_for('main.mostrar_editar_cliente', cliente_id=cliente_id))
+
+from flask import request, jsonify, send_from_directory
+from docx import Document
+from docx.shared import Pt, Cm
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.shared import OxmlElement, qn
+from bs4 import BeautifulSoup
+import os
+from datetime import datetime
+import re
+
+def set_cell_border(cell, **kwargs):
+    """Establecer bordes de celda"""
+    tc = cell._tc
+    tcPr = tc.get_or_add_tcPr()
+    
+    sides = ['top', 'left', 'bottom', 'right']
+    for side in sides:
+        if side in kwargs:
+            tag = f'w:{side}'
+            element = tcPr.find(qn(tag))
+            if element is None:
+                element = OxmlElement(tag)
+                tcPr.append(element)
+            
+            element.set(qn('w:val'), kwargs[side].get('val', 'single'))
+            element.set(qn('w:sz'), str(kwargs[side].get('sz', 4)))
+            element.set(qn('w:space'), '0')
+            element.set(qn('w:color'), kwargs[side].get('color', '000000'))
+
+def format_number_spanish(num):
+    """Formatear número con separadores españoles"""
+    try:
+        if num == 0:
+            return "0.00"
+        return f"{float(num):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+    except:
+        return "0.00"
+
+@main_routes.route('/exportar_libro_compras_word', methods=['POST'])
+def exportar_libro_compras_word():
+    try:
+        data = request.get_json()
+        html_content = data.get('html_content')
+        cliente = data.get('cliente', {})
+        
+        # Asegurar que el directorio temp existe
+        os.makedirs('temp', exist_ok=True)
+        
+        # Parsear HTML para extraer datos
+        soup = BeautifulSoup(html_content, 'html.parser')
+        
+        # Crear documento Word
+        doc = Document()
+        
+        # Configurar márgenes ajustados
+        for section in doc.sections:
+            section.top_margin = Cm(1.0)
+            section.bottom_margin = Cm(1.0)
+            section.left_margin = Cm(0.8)
+            section.right_margin = Cm(0.8)
+            # Configurar orientación horizontal si es necesario
+            section.page_width = Cm(29.7)  # A4 horizontal
+            section.page_height = Cm(21.0)
+        
+        # Configurar estilo base - Courier New para alineación perfecta
+        style = doc.styles['Normal']
+        style.font.name = 'Courier New'
+        style.font.size = Pt(8)
+        
+        # === ENCABEZADO SUPERIOR ===
+        # Crear tabla para el encabezado (2 columnas)
+        header_table = doc.add_table(rows=1, cols=2)
+        header_table.columns[0].width = Cm(12)
+        header_table.columns[1].width = Cm(15)
+        
+        # Columna izquierda - Información de la empresa
+        left_cell = header_table.rows[0].cells[0]
+        left_para = left_cell.paragraphs[0]
+        
+        company_run = left_para.add_run(f"{cliente.get('nombre', 'N/A')}\n")
+        company_run.bold = True
+        company_run.font.size = Pt(9)
+        
+        left_para.add_run(f"R.I.F.  : {cliente.get('rif', 'N/A')}\n")
+        left_para.add_run(f"Direccion : {cliente.get('direccion', 'N/A')}\n")
+        
+        # Extraer período
+        period_text = "ABRIL - 2025  periodo desde 01/04/2025 hasta 30/04/2025"
+        company_info = soup.find('div', class_='company-info')
+        if company_info:
+            for text in company_info.stripped_strings:
+                if "Mes :" in text:
+                    period_text = text.replace("Mes : ", "")
+                    break
+        
+        left_para.add_run(f"Mes : {period_text}\n")
+        left_para.add_run("Pag:1")
+        
+        # Columna derecha - Título
+        right_cell = header_table.rows[0].cells[1]
+        right_para = right_cell.paragraphs[0]
+        right_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        title_run = right_para.add_run("Libro de Compras")
+        title_run.bold = True
+        title_run.font.size = Pt(14)
+        
+        # Quitar bordes de la tabla de encabezado
+        for row in header_table.rows:
+            for cell in row.cells:
+                set_cell_border(cell, top={'val': 'nil'}, bottom={'val': 'nil'}, 
+                              left={'val': 'nil'}, right={'val': 'nil'})
+        
+        # Espacio
+        doc.add_paragraph()
+        
+        # === TABLA PRINCIPAL DE DATOS ===
+        # Crear tabla con 15 columnas (como en la imagen)
+        main_table = doc.add_table(rows=4, cols=15)
+        
+        # Configurar anchos de columnas para coincidir exactamente con la imagen
+        column_widths = [
+            Cm(1.2),  # FECHA
+            Cm(1.2),  # FACTURA FECHA  
+            Cm(1.2),  # FACTURA NUMERO
+            Cm(0.8),  # DOC
+            Cm(1.5),  # CONTROL
+            Cm(4.0),  # NOMBRE DEL PROVEEDOR
+            Cm(2.2),  # R.I.F.
+            Cm(1.8),  # TOTAL COMPRAS INCLUYENDO I.V.A.
+            Cm(1.5),  # SIN DERECHO A CREDITO
+            Cm(1.2),  # BASE (IMPORTACION)
+            Cm(1.2),  # I.V.A. (IMPORTACION)
+            Cm(1.2),  # BASE (NACIONAL)
+            Cm(1.2),  # I.V.A. (NACIONAL)
+            Cm(1.5),  # Comprobante
+            Cm(1.2)   # RETENCION
+        ]
+        
+        for i, width in enumerate(column_widths):
+            for row in main_table.rows:
+                row.cells[i].width = width
+        
+        # === PRIMERA FILA - ENCABEZADOS PRINCIPALES ===
+        row1 = main_table.rows[0]
+        
+        # Combinar celdas para "DATOS DE LAS FACTURA" (columnas 0-4)
+        merge_cell1 = row1.cells[0]
+        for i in range(1, 5):
+            merge_cell1.merge(row1.cells[i])
+        merge_cell1.text = "DATOS DE LAS FACTURA"
+        para1 = merge_cell1.paragraphs[0]
+        para1.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run1 = para1.runs[0]
+        run1.bold = True
+        run1.font.size = Pt(8)
+        
+        # NOMBRE DEL PROVEEDOR
+        row1.cells[5].text = ""
+        
+        # R.I.F.
+        row1.cells[6].text = ""
+        
+        # TOTAL COMPRAS INCLUYENDO I.V.A.
+        row1.cells[7].text = "TOTAL COMPRAS\nINCLUYENDO\nI.V.A."
+        para7 = row1.cells[7].paragraphs[0]
+        para7.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        para7.runs[0].bold = True
+        para7.runs[0].font.size = Pt(7)
+        
+        # SIN DERECHO A CREDITO
+        row1.cells[8].text = "SIN\nDERECHO\nA\nCREDITO"
+        para8 = row1.cells[8].paragraphs[0]
+        para8.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        para8.runs[0].bold = True
+        para8.runs[0].font.size = Pt(7)
+        
+        # Combinar "CON DERECHO A CREDITO" (columnas 9-12)
+        merge_cell2 = row1.cells[9]
+        for i in range(10, 13):
+            merge_cell2.merge(row1.cells[i])
+        merge_cell2.text = "CON DERECHO A CREDITO"
+        para9 = merge_cell2.paragraphs[0]
+        para9.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        para9.runs[0].bold = True
+        para9.runs[0].font.size = Pt(8)
+        
+        # Celdas finales vacías
+        row1.cells[13].text = ""
+        row1.cells[14].text = ""
+        
+        # === SEGUNDA FILA - SUBENCABEZADOS ===
+        row2 = main_table.rows[1]
+        headers2 = [
+            "", "", "", "", "",
+            "NOMBRE DEL PROVEEDOR", "R.I.F.", "",
+            "", "IMPORTACION", "IMPORTACION", "NACIONAL", "NACIONAL", "", ""
+        ]
+        
+        for i, header in enumerate(headers2):
+            if header:
+                row2.cells[i].text = header
+                para = row2.cells[i].paragraphs[0]
+                para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                para.runs[0].bold = True
+                para.runs[0].font.size = Pt(7)
+        
+        # === TERCERA FILA - ENCABEZADOS DETALLADOS ===
+        row3 = main_table.rows[2]
+        headers3 = [
+            "FECHA", "FACTURA", "FACTURA", "DOC", "CONTROL",
+            "", "", "", "", "BASE", "I.V.A.", "BASE", "I.V.A.", "Comprobante", "RETENCION"
+        ]
+        
+        for i, header in enumerate(headers3):
+            if header:
+                row3.cells[i].text = header
+                para = row3.cells[i].paragraphs[0]
+                para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                para.runs[0].bold = True
+                para.runs[0].font.size = Pt(7)
+        
+        # === CUARTA FILA - SUBENCABEZADOS FINALES ===
+        row4 = main_table.rows[3]
+        headers4 = [
+            "FECHA.", "FECHA", "NUMERO", "", "",
+            "", "", "", "", "", "", "", "", "", ""
+        ]
+        
+        for i, header in enumerate(headers4):
+            if header:
+                row4.cells[i].text = header
+                para = row4.cells[i].paragraphs[0]
+                para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                para.runs[0].bold = True
+                para.runs[0].font.size = Pt(7)
+        
+        # === EXTRAER Y AGREGAR DATOS ===
+        html_table = soup.find('table')
+        totals = {
+            'totalCompras': 0, 'totalExentos': 0, 'totalBaseImportacion': 0,
+            'totalIvaImportacion': 0, 'totalBaseNacional': 0, 'totalIvaNacional': 0,
+            'totalRetencion': 0
+        }
+        
+        if html_table:
+            for row in html_table.find_all('tr'):
+                cells = row.find_all('td')
+                if len(cells) >= 14 and not any(cls in row.get('class', []) for cls in ['subtotal', 'total']):
+                    # Agregar fila de datos
+                    data_row = main_table.add_row()
+                    
+                    # Mapear datos según la estructura esperada
+                    cell_data = []
+                    for i, cell in enumerate(cells[:15]):
+                        text = cell.get_text().strip()
+                        cell_data.append(text)
+                        
+                        # Acumular totales
+                        if i >= 7 and text and text.replace('.', '').replace(',', '').replace('-', '').isdigit():
+                            num_value = float(text.replace('.', '').replace(',', '.'))
+                            if i == 7: totals['totalCompras'] += num_value
+                            elif i == 8: totals['totalExentos'] += num_value
+                            elif i == 9: totals['totalBaseImportacion'] += num_value
+                            elif i == 10: totals['totalIvaImportacion'] += num_value
+                            elif i == 11: totals['totalBaseNacional'] += num_value
+                            elif i == 12: totals['totalIvaNacional'] += num_value
+                            elif i == 13: totals['totalRetencion'] += num_value
+                    
+                    # Llenar celdas de la fila
+                    for i, data in enumerate(cell_data):
+                        if i < len(data_row.cells):
+                            cell = data_row.cells[i]
+                            cell.text = data
+                            para = cell.paragraphs[0]
+                            run = para.runs[0] if para.runs else para.add_run(data)
+                            run.font.size = Pt(7)
+                            
+                            # Alineación
+                            if i >= 7:  # Columnas numéricas
+                                para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                            else:
+                                para.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        
+        # === AGREGAR FILAS DE TOTALES ===
+        # Subtotales
+        subtotal_row = main_table.add_row()
+        subtotal_data = [
+            "", "", "", "", "", "", "SUB-TOTALES.",
+            format_number_spanish(totals['totalCompras']),
+            format_number_spanish(totals['totalExentos']),
+            format_number_spanish(totals['totalBaseImportacion']),
+            format_number_spanish(totals['totalIvaImportacion']),
+            format_number_spanish(totals['totalBaseNacional']),
+            format_number_spanish(totals['totalIvaNacional']),
+            "",
+            format_number_spanish(totals['totalRetencion'])
+        ]
+        
+        for i, data in enumerate(subtotal_data):
+            if i < len(subtotal_row.cells):
+                cell = subtotal_row.cells[i]
+                cell.text = data
+                para = cell.paragraphs[0]
+                run = para.runs[0] if para.runs else para.add_run(data)
+                run.font.size = Pt(8)
+                run.bold = True
+                
+                if i >= 6:
+                    para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        
+        # Totales finales
+        total_row = main_table.add_row()
+        total_data = [
+            "", "", "", "", "", "", "TOTALES.",
+            format_number_spanish(totals['totalCompras']),
+            format_number_spanish(totals['totalExentos']),
+            format_number_spanish(totals['totalBaseImportacion']),
+            format_number_spanish(totals['totalIvaImportacion']),
+            format_number_spanish(totals['totalBaseNacional']),
+            format_number_spanish(totals['totalIvaNacional']),
+            "",
+            format_number_spanish(totals['totalRetencion'])
+        ]
+        
+        for i, data in enumerate(total_data):
+            if i < len(total_row.cells):
+                cell = total_row.cells[i]
+                cell.text = data
+                para = cell.paragraphs[0]
+                run = para.runs[0] if para.runs else para.add_run(data)
+                run.font.size = Pt(8)
+                run.bold = True
+                
+                if i >= 6:
+                    para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        
+        # === APLICAR BORDES ===
+        border_style = {'val': 'single', 'sz': 4, 'color': '000000'}
+        
+        # Solo bordes horizontales en la parte superior e inferior
+        for i, row in enumerate(main_table.rows):
+            for j, cell in enumerate(row.cells):
+                if i <= 3:  # Filas de encabezado
+                    set_cell_border(cell, top=border_style, bottom=border_style)
+                else:  # Filas de datos
+                    if i == len(main_table.rows) - 2:  # Fila de subtotales
+                        set_cell_border(cell, top=border_style)
+                    elif i == len(main_table.rows) - 1:  # Fila de totales
+                        set_cell_border(cell, bottom=border_style)
+        
+        # Nombre de archivo
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        cliente_name = re.sub(r'[^a-zA-Z0-9_-]', '_', cliente.get('nombre', 'cliente'))
+        filename = f"libro_compras_{cliente_name}_{timestamp}.docx"
+        filepath = os.path.join('temp', filename)
+        
+        # Guardar documento
+        doc.save(filepath)
+        
+        return jsonify({'filename': filename})
+    
+    except Exception as e:
+        current_app.logger.error(f'Error al generar Word: {str(e)}')
+        return jsonify({'error': f'Error interno: {str(e)}'}, 500)
+
+@main_routes.route('/descargar_word/<filename>')
+def descargar_word(filename):
+    try:
+        return send_from_directory('temp', filename, as_attachment=True)
+    except Exception as e:
+        return jsonify({'error': f'Archivo no encontrado: {str(e)}'}, 404)
+
+import glob
+import time
+
+def limpiar_temporales():
+    """Eliminar archivos temporales con más de 1 hora de antigüedad"""
+    try:
+        for filepath in glob.glob('temp/*.docx'):
+            if os.path.getmtime(filepath) < time.time() - 3600:
+                os.remove(filepath)
+    except Exception as e:
+        print(f"Error limpiando temporales: {e}")
+
+# Ejecutar al inicio de la app
+limpiar_temporales()

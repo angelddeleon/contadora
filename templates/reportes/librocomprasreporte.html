@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Libro de Compras</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            line-height: 1.2;
+            margin: 20px;
+        }
+        .header {
+            margin-bottom: 20px;
+        }
+        .company-info {
+            text-align: left;
+            float: left;
+            width: 60%;
+        }
+        .title {
+            text-align: right;
+            font-weight: bold;
+            font-size: 16px;
+            float: right;
+            width: 40%;
+            margin-top: 10px;
+        }
+        .clearfix:after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+        .divider {
+            border-top: 1px solid #000;
+            margin: 10px 0;
+            clear: both;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+            padding: 3px 5px;
+            text-align: left;
+            font-size: 11px;
+        }
+        th {
+            font-weight: bold;
+        }
+        .subtotal, .total {
+            font-weight: bold;
+        }
+        .right-align {
+            text-align: right;
+        }
+        .center-align {
+            text-align: center;
+        }
+        .section-header {
+            text-align: center;
+            border-bottom: 1px solid #000;
+            font-weight: bold;
+            padding: 3px 0;
+        }
+        .multi-header {
+            border-bottom: none;
+        }
+        .sub-header {
+            border-top: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header clearfix">
+        <div class="company-info">
+            <div style="font-weight: bold;">RAZON SOCIAL C.A</div>
+            <div>R.I.F. : J-12345678-9</div>
+            <div>Direccion : AV LA MARIPOSA LOCAL S/N SECTOR BARRIO EL SOCORRO TOCUYITO CARABOBO ZONA POSTAL 2035</div>
+            <div>Mes : ABRIL - 2025  periodo desde 01/04/2025 hasta 30/04/2025</div>
+            <div>Pag:1</div>
+        </div>
+        <div class="title">
+            Libro de Compras
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <table>
+        <tr>
+            <th colspan="5" class="multi-header section-header">DATOS DE LAS FACTURA</th>
+            <th rowspan="2"></th>
+            <th rowspan="2" class="section-header">TOTAL COMPRAS<br>INCLUYENDO<br>I.V.A.</th>
+            <th rowspan="2" class="section-header">SIN<br>DERECHO<br>A<br>CREDITO</th>
+            <th colspan="5" class="multi-header section-header">CON DERECHO A CREDITO</th>
+            <th colspan="2" class="multi-header"></th>
+        </tr>
+        <tr>
+            <th class="sub-header">FECHA.</th>
+            <th class="sub-header">FECHA<br>FACTURA</th>
+            <th class="sub-header">FACTURA<br>NUMERO</th>
+            <th class="sub-header">DOC</th>
+            <th class="sub-header">CONTROL</th>
+            <th class="sub-header">NOMBRE DEL PROVEEDOR</th>
+            <th class="sub-header">R.I.F.</th>
+            <th colspan="2" class="sub-header center-align">IMPORTACION</th>
+            <th colspan="2" class="sub-header center-align">NACIONAL</th>
+            <th class="sub-header">Comprobante</th>
+            <th class="sub-header">RETENCION</th>
+        </tr>
+        <tr>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th>BASE</th>
+            <th>I.V.A.</th>
+            <th>BASE</th>
+            <th>I.V.A.</th>
+            <th></th>
+            <th></th>
+        </tr>
+        <tr>
+            <td>03/04/2025</td>
+            <td>03/04/2025</td>
+            <td>25988</td>
+            <td>FAC</td>
+            <td>00-028988</td>
+            <td>MEZCLAS Y DISOLVENTES DE VENEZ</td>
+            <td>J-31170947-9</td>
+            <td class="right-align">44,004.60</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">37,935.00</td>
+            <td class="right-align">6,069.60</td>
+            <td></td>
+            <td class="right-align">0.00</td>
+        </tr>
+        <tr>
+            <td>04/04/2025</td>
+            <td>04/04/2025</td>
+            <td>082205</td>
+            <td>FAC</td>
+            <td>15-0001242</td>
+            <td>CORPORACION GRAN IMPORT C.A</td>
+            <td>J-30828812-2</td>
+            <td class="right-align">2,467.20</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">1,954.34</td>
+            <td class="right-align">312.70</td>
+            <td></td>
+            <td class="right-align">0.00</td>
+        </tr>
+        <tr>
+            <td>09/04/2025</td>
+            <td>09/04/2025</td>
+            <td>000175</td>
+            <td>FAC</td>
+            <td>00-000175</td>
+            <td>TIENDA ZOOM VALENCIA, C.A</td>
+            <td>J-29614644-2</td>
+            <td class="right-align">8,464.20</td>
+            <td class="right-align">4,464.20</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">0.00</td>
+            <td></td>
+            <td class="right-align">0.00</td>
+        </tr>
+        <tr>
+            <td>11/04/2025</td>
+            <td>11/04/2025</td>
+            <td>00018499</td>
+            <td>FAC</td>
+            <td>00-018567</td>
+            <td>TODO EN PEGAMENTO, C.A</td>
+            <td>J-31116463-2</td>
+            <td class="right-align">5,489.60</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">4,732.45</td>
+            <td class="right-align">757.15</td>
+            <td></td>
+            <td class="right-align">0.00</td>
+        </tr>
+        <tr>
+            <td>21/04/2025</td>
+            <td>21/04/2025</td>
+            <td>089641</td>
+            <td>FAC</td>
+            <td>15-0001562</td>
+            <td>CORPORACION GRAN IMPORT C.A</td>
+            <td>J-30828812-2</td>
+            <td class="right-align">2,225.89</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">1,917.15</td>
+            <td class="right-align">306.74</td>
+            <td></td>
+            <td class="right-align">0.00</td>
+        </tr>
+        <tr>
+            <td>23/04/2025</td>
+            <td>23/04/2025</td>
+            <td>00074870</td>
+            <td>FAC</td>
+            <td>00-0037855</td>
+            <td>SUMINISTROS QUIMICOS,C.A.</td>
+            <td>J-07810016-6</td>
+            <td class="right-align">18,684.05</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">16,063.87</td>
+            <td class="right-align">2,570.22</td>
+            <td></td>
+            <td class="right-align">0.00</td>
+        </tr>
+        <tr>
+            <td>30/04/2025</td>
+            <td>30/04/2025</td>
+            <td>00004225</td>
+            <td>FAC</td>
+            <td>00-004330</td>
+            <td>MIGAL ALEXANDER PEÑA CORONEL</td>
+            <td>V-18412900-7</td>
+            <td class="right-align">18,416.52</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">15,876.31</td>
+            <td class="right-align">2,540.21</td>
+            <td></td>
+            <td class="right-align">0.00</td>
+        </tr>
+        <tr class="subtotal">
+            <td colspan="7" class="right-align">SUB-TOTALES:</td>
+            <td class="right-align">95,500.00</td>
+            <td class="right-align">4,464.20</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">78,479.14</td>
+            <td class="right-align">12,556.66</td>
+            <td></td>
+            <td class="right-align">0.00</td>
+        </tr>
+        <tr class="total">
+            <td colspan="7" class="right-align">TOTALES:</td>
+            <td class="right-align">95,500.00</td>
+            <td class="right-align">4,464.20</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">0.00</td>
+            <td class="right-align">78,479.14</td>
+            <td class="right-align">12,556.66</td>
+            <td></td>
+            <td class="right-align">0.00</td>
+        </tr>
+    </table>
+</body>
+</html>
