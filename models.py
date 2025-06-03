@@ -240,22 +240,25 @@ class RetencionVenta(db.Model):
     __tablename__ = 'retenciones_ventas'
     
     id_retencion = db.Column(db.Integer, primary_key=True)
+    id_cliente = db.Column(db.Integer, db.ForeignKey('clientes.id_cliente'), nullable=False)
     idfacturaventa = db.Column(db.Integer, db.ForeignKey('libro_ventas.idfacturaventa'), nullable=False)
     numero_comprobante = db.Column(db.String(50), unique=True, nullable=False)
     fecha_emision = db.Column(db.Date, nullable=False)
     fecha_registro = db.Column(db.Date, default=datetime.utcnow, nullable=False)
-    porcentaje_retencion = db.Column(db.Enum('75', '100', name='porcentaje_retencion_venta'), nullable=False)
+    porcentaje_retencion = db.Column(db.Float, nullable=False)
     valor_retencion = db.Column(db.Numeric(12, 2), nullable=False)
     
-    # Relación con LibroVenta
+    # Relaciones
     factura = db.relationship('LibroVenta', backref='retenciones')
+    cliente = db.relationship('Cliente', backref='retenciones_ventas')
     
-    def __init__(self, idfacturaventa, numero_comprobante, fecha_emision, porcentaje_retencion, valor_retencion):
+    def __init__(self, id_cliente, idfacturaventa, numero_comprobante, fecha_emision, porcentaje_retencion, valor_retencion):
+        self.id_cliente = id_cliente
         self.idfacturaventa = idfacturaventa
         self.numero_comprobante = numero_comprobante
         self.fecha_emision = fecha_emision
         self.fecha_registro = datetime.utcnow().date()
-        self.porcentaje_retencion = porcentaje_retencion
+        self.porcentaje_retencion = float(porcentaje_retencion)
         self.valor_retencion = valor_retencion
     
     def __repr__(self):
@@ -264,11 +267,12 @@ class RetencionVenta(db.Model):
     def to_dict(self):
         return {
             'id_retencion': self.id_retencion,
+            'id_cliente': self.id_cliente,
             'idfacturaventa': self.idfacturaventa,
             'numero_comprobante': self.numero_comprobante,
             'fecha_emision': self.fecha_emision.isoformat(),
             'fecha_registro': self.fecha_registro.isoformat(),
-            'porcentaje_retencion': self.porcentaje_retencion,
+            'porcentaje_retencion': float(self.porcentaje_retencion),
             'valor_retencion': float(self.valor_retencion)
         }
 
@@ -277,22 +281,25 @@ class RetencionCompra(db.Model):
     __tablename__ = 'retenciones_compras'
     
     id_retencion = db.Column(db.Integer, primary_key=True)
+    id_cliente = db.Column(db.Integer, db.ForeignKey('clientes.id_cliente'), nullable=False)
     idfacturacompra = db.Column(db.Integer, db.ForeignKey('libro_compras.idfacturacompra'), nullable=False)
     numero_comprobante = db.Column(db.String(50), unique=True, nullable=False)
     fecha_emision = db.Column(db.Date, nullable=False)
     fecha_registro = db.Column(db.Date, default=datetime.utcnow, nullable=False)
-    porcentaje_retencion = db.Column(db.Enum('75', '100', name='porcentaje_retencion_compra'), nullable=False)
+    porcentaje_retencion = db.Column(db.Float, nullable=False)
     valor_retencion = db.Column(db.Numeric(12, 2), nullable=False)
     
-    # Relación con LibroCompra
+    # Relaciones
     factura = db.relationship('LibroCompra', backref='retenciones')
+    cliente = db.relationship('Cliente', backref='retenciones_compras')
     
-    def __init__(self, idfacturacompra, numero_comprobante, fecha_emision, porcentaje_retencion, valor_retencion):
+    def __init__(self, id_cliente, idfacturacompra, numero_comprobante, fecha_emision, porcentaje_retencion, valor_retencion):
+        self.id_cliente = id_cliente
         self.idfacturacompra = idfacturacompra
         self.numero_comprobante = numero_comprobante
         self.fecha_emision = fecha_emision
         self.fecha_registro = datetime.utcnow().date()
-        self.porcentaje_retencion = porcentaje_retencion
+        self.porcentaje_retencion = float(porcentaje_retencion)
         self.valor_retencion = valor_retencion
     
     def __repr__(self):
@@ -301,10 +308,11 @@ class RetencionCompra(db.Model):
     def to_dict(self):
         return {
             'id_retencion': self.id_retencion,
+            'id_cliente': self.id_cliente,
             'idfacturacompra': self.idfacturacompra,
             'numero_comprobante': self.numero_comprobante,
             'fecha_emision': self.fecha_emision.isoformat(),
             'fecha_registro': self.fecha_registro.isoformat(),
-            'porcentaje_retencion': self.porcentaje_retencion,
+            'porcentaje_retencion': float(self.porcentaje_retencion),
             'valor_retencion': float(self.valor_retencion)
         }
