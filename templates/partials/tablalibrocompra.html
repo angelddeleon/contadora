@@ -72,6 +72,10 @@
                                    class="btn btn-primary btn-sm radius-30 px-4" title="Editar Compra">
                                     <i class="bx bx-edit"></i> Editar
                                 </a>
+                                <a href="{{ url_for('main.ver_retenciones_compras', cliente_id=cliente.id_cliente, factura_id=compra.idfacturacompra) }}" 
+                                   class="btn btn-info btn-sm radius-30 px-4" title="Ver Retenciones">
+                                    <i class="bx bx-receipt"></i> Retenciones
+                                </a>
                             </div>
                         </td>
                     </tr>

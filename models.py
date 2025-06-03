@@ -234,3 +234,77 @@ class LibroCompra(db.Model):
                 'rif': self.cliente_rel.rif if self.cliente_rel else None
             }
         }
+
+
+class RetencionVenta(db.Model):
+    __tablename__ = 'retenciones_ventas'
+    
+    id_retencion = db.Column(db.Integer, primary_key=True)
+    idfacturaventa = db.Column(db.Integer, db.ForeignKey('libro_ventas.idfacturaventa'), nullable=False)
+    numero_comprobante = db.Column(db.String(50), unique=True, nullable=False)
+    fecha_emision = db.Column(db.Date, nullable=False)
+    fecha_registro = db.Column(db.Date, default=datetime.utcnow, nullable=False)
+    porcentaje_retencion = db.Column(db.Enum('75', '100', name='porcentaje_retencion_venta'), nullable=False)
+    valor_retencion = db.Column(db.Numeric(12, 2), nullable=False)
+    
+    # Relación con LibroVenta
+    factura = db.relationship('LibroVenta', backref='retenciones')
+    
+    def __init__(self, idfacturaventa, numero_comprobante, fecha_emision, porcentaje_retencion, valor_retencion):
+        self.idfacturaventa = idfacturaventa
+        self.numero_comprobante = numero_comprobante
+        self.fecha_emision = fecha_emision
+        self.fecha_registro = datetime.utcnow().date()
+        self.porcentaje_retencion = porcentaje_retencion
+        self.valor_retencion = valor_retencion
+    
+    def __repr__(self):
+        return f'<RetencionVenta {self.numero_comprobante} - {self.porcentaje_retencion}%>'
+    
+    def to_dict(self):
+        return {
+            'id_retencion': self.id_retencion,
+            'idfacturaventa': self.idfacturaventa,
+            'numero_comprobante': self.numero_comprobante,
+            'fecha_emision': self.fecha_emision.isoformat(),
+            'fecha_registro': self.fecha_registro.isoformat(),
+            'porcentaje_retencion': self.porcentaje_retencion,
+            'valor_retencion': float(self.valor_retencion)
+        }
+
+
+class RetencionCompra(db.Model):
+    __tablename__ = 'retenciones_compras'
+    
+    id_retencion = db.Column(db.Integer, primary_key=True)
+    idfacturacompra = db.Column(db.Integer, db.ForeignKey('libro_compras.idfacturacompra'), nullable=False)
+    numero_comprobante = db.Column(db.String(50), unique=True, nullable=False)
+    fecha_emision = db.Column(db.Date, nullable=False)
+    fecha_registro = db.Column(db.Date, default=datetime.utcnow, nullable=False)
+    porcentaje_retencion = db.Column(db.Enum('75', '100', name='porcentaje_retencion_compra'), nullable=False)
+    valor_retencion = db.Column(db.Numeric(12, 2), nullable=False)
+    
+    # Relación con LibroCompra
+    factura = db.relationship('LibroCompra', backref='retenciones')
+    
+    def __init__(self, idfacturacompra, numero_comprobante, fecha_emision, porcentaje_retencion, valor_retencion):
+        self.idfacturacompra = idfacturacompra
+        self.numero_comprobante = numero_comprobante
+        self.fecha_emision = fecha_emision
+        self.fecha_registro = datetime.utcnow().date()
+        self.porcentaje_retencion = porcentaje_retencion
+        self.valor_retencion = valor_retencion
+    
+    def __repr__(self):
+        return f'<RetencionCompra {self.numero_comprobante} - {self.porcentaje_retencion}%>'
+    
+    def to_dict(self):
+        return {
+            'id_retencion': self.id_retencion,
+            'idfacturacompra': self.idfacturacompra,
+            'numero_comprobante': self.numero_comprobante,
+            'fecha_emision': self.fecha_emision.isoformat(),
+            'fecha_registro': self.fecha_registro.isoformat(),
+            'porcentaje_retencion': self.porcentaje_retencion,
+            'valor_retencion': float(self.valor_retencion)
+        }

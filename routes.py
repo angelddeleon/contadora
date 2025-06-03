@@ -1,5 +1,5 @@
 from flask import Flask, render_template, redirect, url_for, request, flash, Blueprint, jsonify, current_app
-from models import db, Usuario, LibroCompra, LibroVenta, Cliente
+from models import db, Usuario, LibroCompra, LibroVenta, Cliente, RetencionVenta, RetencionCompra
 from datetime import datetime, time, timedelta
 from flask_login import login_user, login_required, current_user, logout_user
 from functools import wraps
@@ -843,3 +843,267 @@ def limpiar_temporales():
 
 # Ejecutar al inicio de la app
 limpiar_temporales()
+
+@main_routes.route('/cliente/<int:cliente_id>/retenciones-ventas')
+@admin_required
+def retenciones_ventas(cliente_id):
+    try:
+        cliente = Cliente.query.get_or_404(cliente_id)
+        # Solo mostrar retenciones de ventas si es cliente especial
+        if cliente.contribuyente != 'especial':
+            flash('Este cliente no puede tener retenciones de ventas', 'warning')
+            return redirect(url_for('main.ver_cliente', cliente_id=cliente_id))
+        
+        # Obtener todas las retenciones de venta del cliente
+        retenciones = db.session.query(RetencionVenta, LibroVenta)\
+            .join(LibroVenta, RetencionVenta.idfacturaventa == LibroVenta.idfacturaventa)\
+            .filter(LibroVenta.id_cliente == cliente_id)\
+            .all()
+            
+        return render_template('retenciones/lista_retenciones_ventas.html', 
+                             cliente=cliente,
+                             retenciones=[r[0] for r in retenciones],
+                             facturas={r[0].idfacturaventa: r[1] for r in retenciones})
+    except Exception as e:
+        current_app.logger.error(f'Error al cargar retenciones de ventas: {str(e)}')
+        flash('Error al cargar las retenciones de ventas', 'danger')
+        return redirect(url_for('main.ver_cliente', cliente_id=cliente_id))
+
+@main_routes.route('/cliente/<int:cliente_id>/retenciones-compras')
+@admin_required
+def retenciones_compras(cliente_id):
+    try:
+        cliente = Cliente.query.get_or_404(cliente_id)
+        
+        # Obtener todas las retenciones de compra del cliente
+        retenciones = db.session.query(RetencionCompra, LibroCompra)\
+            .join(LibroCompra, RetencionCompra.idfacturacompra == LibroCompra.idfacturacompra)\
+            .filter(LibroCompra.id_cliente == cliente_id)\
+            .all()
+            
+        return render_template('retenciones/lista_retenciones_compras.html', 
+                             cliente=cliente,
+                             retenciones=[r[0] for r in retenciones],
+                             facturas={r[0].idfacturacompra: r[1] for r in retenciones})
+    except Exception as e:
+        current_app.logger.error(f'Error al cargar retenciones de compras: {str(e)}')
+        flash('Error al cargar las retenciones de compras', 'danger')
+        return redirect(url_for('main.ver_cliente', cliente_id=cliente_id))
+
+@main_routes.route('/cliente/<int:cliente_id>/ver-retenciones-ventas/<int:factura_id>')
+@admin_required
+def ver_retenciones_ventas(cliente_id, factura_id):
+    try:
+        cliente = Cliente.query.get_or_404(cliente_id)
+        # Solo mostrar retenciones de ventas si es cliente especial
+        if cliente.contribuyente != 'especial':
+            flash('Este cliente no puede tener retenciones de ventas', 'warning')
+            return redirect(url_for('main.cliente_libro_ventas', cliente_id=cliente_id))
+            
+        factura = LibroVenta.query.get_or_404(factura_id)
+        retenciones = RetencionVenta.query.filter_by(idfacturaventa=factura_id).all()
+        return render_template('retenciones/lista_retenciones_ventas.html', 
+                             cliente=cliente, 
+                             factura=factura, 
+                             retenciones=retenciones)
+    except Exception as e:
+        current_app.logger.error(f'Error al cargar retenciones de venta: {str(e)}')
+        flash('Error al cargar las retenciones', 'danger')
+        return redirect(url_for('main.cliente_libro_ventas', cliente_id=cliente_id))
+
+@main_routes.route('/cliente/<int:cliente_id>/ver-retenciones-compras/<int:factura_id>')
+@admin_required
+def ver_retenciones_compras(cliente_id, factura_id):
+    try:
+        cliente = Cliente.query.get_or_404(cliente_id)
+        factura = LibroCompra.query.get_or_404(factura_id)
+        retenciones = RetencionCompra.query.filter_by(idfacturacompra=factura_id).all()
+        return render_template('retenciones/lista_retenciones_compras.html', 
+                             cliente=cliente, 
+                             factura=factura, 
+                             retenciones=retenciones)
+    except Exception as e:
+        current_app.logger.error(f'Error al cargar retenciones de compra: {str(e)}')
+        flash('Error al cargar las retenciones', 'danger')
+        return redirect(url_for('main.cliente_libro_compras', cliente_id=cliente_id))
+
+@main_routes.route('/cliente/<int:cliente_id>/crear-retencion-venta/<int:factura_id>', methods=['GET', 'POST'])
+@admin_required
+def crear_retencion_venta(cliente_id, factura_id):
+    try:
+        cliente = Cliente.query.get_or_404(cliente_id)
+        # Solo permitir crear retenciones de ventas si es cliente especial
+        if cliente.contribuyente != 'especial':
+            flash('Este cliente no puede tener retenciones de ventas', 'warning')
+            return redirect(url_for('main.cliente_libro_ventas', cliente_id=cliente_id))
+            
+        factura = LibroVenta.query.get_or_404(factura_id)
+        
+        if request.method == 'POST':
+            numero_comprobante = request.form['numero_comprobante']
+            fecha_emision = datetime.strptime(request.form['fecha_emision'], '%Y-%m-%d')
+            porcentaje_retencion = request.form['porcentaje_retencion']
+            valor_retencion = float(request.form['valor_retencion'])
+            
+            nueva_retencion = RetencionVenta(
+                idfacturaventa=factura_id,
+                numero_comprobante=numero_comprobante,
+                fecha_emision=fecha_emision,
+                fecha_registro=datetime.now().date(),
+                porcentaje_retencion=porcentaje_retencion,
+                valor_retencion=valor_retencion
+            )
+            
+            db.session.add(nueva_retencion)
+            db.session.commit()
+            
+            flash('Retención de venta creada exitosamente', 'success')
+            return redirect(url_for('main.ver_retenciones_ventas', cliente_id=cliente_id, factura_id=factura_id))
+            
+        return render_template('retenciones/crear_retencion_venta.html', 
+                             cliente=cliente, 
+                             factura=factura)
+    except Exception as e:
+        current_app.logger.error(f'Error al crear retención de venta: {str(e)}')
+        flash('Error al crear la retención', 'danger')
+        return redirect(url_for('main.ver_retenciones_ventas', cliente_id=cliente_id, factura_id=factura_id))
+
+@main_routes.route('/cliente/<int:cliente_id>/crear-retencion-compra/<int:factura_id>', methods=['GET', 'POST'])
+@admin_required
+def crear_retencion_compra(cliente_id, factura_id):
+    try:
+        cliente = Cliente.query.get_or_404(cliente_id)
+        factura = LibroCompra.query.get_or_404(factura_id)
+        
+        if request.method == 'POST':
+            numero_comprobante = request.form['numero_comprobante']
+            fecha_emision = datetime.strptime(request.form['fecha_emision'], '%Y-%m-%d')
+            porcentaje_retencion = request.form['porcentaje_retencion']
+            valor_retencion = float(request.form['valor_retencion'])
+            
+            nueva_retencion = RetencionCompra(
+                idfacturacompra=factura_id,
+                numero_comprobante=numero_comprobante,
+                fecha_emision=fecha_emision,
+                fecha_registro=datetime.now().date(),
+                porcentaje_retencion=porcentaje_retencion,
+                valor_retencion=valor_retencion
+            )
+            
+            db.session.add(nueva_retencion)
+            db.session.commit()
+            
+            flash('Retención de compra creada exitosamente', 'success')
+            return redirect(url_for('main.ver_retenciones_compras', cliente_id=cliente_id, factura_id=factura_id))
+            
+        return render_template('retenciones/crear_retencion_compra.html', 
+                             cliente=cliente, 
+                             factura=factura)
+    except Exception as e:
+        current_app.logger.error(f'Error al crear retención de compra: {str(e)}')
+        flash('Error al crear la retención', 'danger')
+        return redirect(url_for('main.ver_retenciones_compras', cliente_id=cliente_id, factura_id=factura_id))
+
+@main_routes.route('/cliente/<int:cliente_id>/editar-retencion-venta/<int:retencion_id>', methods=['GET', 'POST'])
+@admin_required
+def editar_retencion_venta(cliente_id, retencion_id):
+    try:
+        retencion = RetencionVenta.query.get_or_404(retencion_id)
+        cliente = Cliente.query.get_or_404(cliente_id)
+        factura = LibroVenta.query.get_or_404(retencion.idfacturaventa)
+        
+        if request.method == 'POST':
+            retencion.numero_comprobante = request.form['numero_comprobante']
+            retencion.fecha_emision = datetime.strptime(request.form['fecha_emision'], '%Y-%m-%d')
+            retencion.porcentaje_retencion = request.form['porcentaje_retencion']
+            retencion.valor_retencion = float(request.form['valor_retencion'])
+            
+            db.session.commit()
+            flash('Retención de venta actualizada exitosamente', 'success')
+            return redirect(url_for('main.ver_retenciones_ventas', 
+                                  cliente_id=cliente_id, 
+                                  factura_id=retencion.idfacturaventa))
+        
+        return render_template('retenciones/editar_retencion_venta.html',
+                             cliente=cliente,
+                             factura=factura,
+                             retencion=retencion)
+    except Exception as e:
+        current_app.logger.error(f'Error al editar retención de venta: {str(e)}')
+        flash('Error al editar la retención', 'danger')
+        return redirect(url_for('main.ver_retenciones_ventas', 
+                              cliente_id=cliente_id, 
+                              factura_id=retencion.idfacturaventa))
+
+@main_routes.route('/cliente/<int:cliente_id>/editar-retencion-compra/<int:retencion_id>', methods=['GET', 'POST'])
+@admin_required
+def editar_retencion_compra(cliente_id, retencion_id):
+    try:
+        retencion = RetencionCompra.query.get_or_404(retencion_id)
+        cliente = Cliente.query.get_or_404(cliente_id)
+        factura = LibroCompra.query.get_or_404(retencion.idfacturacompra)
+        
+        if request.method == 'POST':
+            retencion.numero_comprobante = request.form['numero_comprobante']
+            retencion.fecha_emision = datetime.strptime(request.form['fecha_emision'], '%Y-%m-%d')
+            retencion.porcentaje_retencion = request.form['porcentaje_retencion']
+            retencion.valor_retencion = float(request.form['valor_retencion'])
+            
+            db.session.commit()
+            flash('Retención de compra actualizada exitosamente', 'success')
+            return redirect(url_for('main.ver_retenciones_compras', 
+                                  cliente_id=cliente_id, 
+                                  factura_id=retencion.idfacturacompra))
+        
+        return render_template('retenciones/editar_retencion_compra.html',
+                             cliente=cliente,
+                             factura=factura,
+                             retencion=retencion)
+    except Exception as e:
+        current_app.logger.error(f'Error al editar retención de compra: {str(e)}')
+        flash('Error al editar la retención', 'danger')
+        return redirect(url_for('main.ver_retenciones_compras', 
+                              cliente_id=cliente_id, 
+                              factura_id=retencion.idfacturacompra))
+
+@main_routes.route('/cliente/<int:cliente_id>/eliminar-retencion-venta/<int:retencion_id>', methods=['POST'])
+@admin_required
+def eliminar_retencion_venta(cliente_id, retencion_id):
+    try:
+        retencion = RetencionVenta.query.get_or_404(retencion_id)
+        factura_id = retencion.idfacturaventa
+        
+        db.session.delete(retencion)
+        db.session.commit()
+        
+        flash('Retención de venta eliminada exitosamente', 'success')
+        return redirect(url_for('main.ver_retenciones_ventas', 
+                              cliente_id=cliente_id, 
+                              factura_id=factura_id))
+    except Exception as e:
+        current_app.logger.error(f'Error al eliminar retención de venta: {str(e)}')
+        flash('Error al eliminar la retención', 'danger')
+        return redirect(url_for('main.ver_retenciones_ventas', 
+                              cliente_id=cliente_id, 
+                              factura_id=factura_id))
+
+@main_routes.route('/cliente/<int:cliente_id>/eliminar-retencion-compra/<int:retencion_id>', methods=['POST'])
+@admin_required
+def eliminar_retencion_compra(cliente_id, retencion_id):
+    try:
+        retencion = RetencionCompra.query.get_or_404(retencion_id)
+        factura_id = retencion.idfacturacompra
+        
+        db.session.delete(retencion)
+        db.session.commit()
+        
+        flash('Retención de compra eliminada exitosamente', 'success')
+        return redirect(url_for('main.ver_retenciones_compras', 
+                              cliente_id=cliente_id, 
+                              factura_id=factura_id))
+    except Exception as e:
+        current_app.logger.error(f'Error al eliminar retención de compra: {str(e)}')
+        flash('Error al eliminar la retención', 'danger')
+        return redirect(url_for('main.ver_retenciones_compras', 
+                              cliente_id=cliente_id, 
+                              factura_id=factura_id))
