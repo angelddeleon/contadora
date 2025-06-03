@@ -53,7 +53,7 @@
                 numerofactura: "{{ venta.numerofactura }}",
                 numerocontrol: "{{ venta.numerocontrol or '' }}",
                 fechafactura: "{{ venta.fechafactura.strftime('%Y-%m-%d') }}",
-                cliente: "{{ venta.cliente|replace('"', '\\"') }}",
+                cliente: "{{ venta.cliente|replace('"', '\"') }}",
                 rif: "{{ venta.rif }}",
                 montoTotal: {{ venta.montoTotal }},
                 exentas: {{ venta.exentas }},
@@ -61,7 +61,9 @@
                 iva: {{ venta.iva }},
                 porcentaje_iva: {{ venta.porcentaje_iva }},
                 cajaregistradora: "{{ venta.cajaregistradora or '' }}",
-                documento: "{{ venta.documento }}"
+                documento: "{{ venta.documento }}",
+                numero_comprobante_retencion: "{% if venta.idfacturaventa in retenciones %}{{ retenciones[venta.idfacturaventa].numero_comprobante }}{% else %}{% endif %}",
+                valor_retencion: {% if venta.idfacturaventa in retenciones %}{{ retenciones[venta.idfacturaventa].valor_retencion|float }}{% else %}0.00{% endif %}
             }{% if not loop.last %},{% endif %}
             {% endfor %}
         ];
@@ -337,7 +339,7 @@
                             <th class="sub-header">Fecha</th>
                             <th colspan="2" class="sub-header">FACTURA</th>
                             <th class="sub-header">Control</th>
-                            <th class="sub-header">Nombre<br>Razon Social</th>
+                            <th class="sub-header">Nombre<br>${clienteInfo.nombre}</th>
                             <th class="sub-header">Rif</th>
                             <th colspan="2" class="sub-header">ALICUOTA REDUCIDA</th>
                             <th class="sub-header">BASE</th>
@@ -393,8 +395,8 @@
                     var baseNacional = parseFloat(venta.base);
                     var porcentajeNacional = parseFloat(venta.porcentaje_iva);
                     var ivaNacional = parseFloat(venta.iva);
-                    var comprobante = venta.cajaregistradora || '';
-                    var retencion = ivaNacional * 0.12; // Asumiendo retención 12% sobre el IVA
+                    var comprobante = venta.numero_comprobante_retencion;
+                    var retencion = parseFloat(venta.valor_retencion);
 
                     // Acumular totales
                     totalVentas += totalVenta;
@@ -410,7 +412,7 @@
                             <td>${operacion}</td>
                             <td>${fecha}</td>
                             <td>${facturaDesde}</td>
-                            <td>${facturaHasta}</td>
+                            <td></td>
                             <td>${control}</td>
                             <td>${nombreCliente}</td>
                             <td>${rif}</td>

@@ -44,6 +44,13 @@
                             </a>
                         </div>
                     </div>
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <input type="date" class="form-control radius-30" id="startDate" placeholder="Fecha Inicio">
+                        <input type="date" class="form-control radius-30" id="endDate" placeholder="Fecha Fin">
+                        <button class="btn btn-secondary radius-30" id="clearFilters">
+                            <i class="bx bx-reset"></i> Limpiar Filtros
+                        </button>
+                    </div>
                     <div class="table-responsive">
                         <table class="table mb-0" id="retencionesTable">
                             <thead class="table-light">
@@ -102,11 +109,42 @@
     <script src="{{ url_for('static', filename='assets/plugins/datatable/js/dataTables.bootstrap5.min.js') }}"></script>
     <script>
         $(document).ready(function() {
-            $('#retencionesTable').DataTable({
+            var table = $('#retencionesTable').DataTable({
                 "order": [[1, "desc"]],
                 "language": {
                     "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
+                },
+                dom: 'Bfrtip',
+                buttons: [
+                    'copy', 'excel', 'pdf', 'print'
+                ]
+            });
+            // Filtro de fecha personalizado
+            $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                var startDate = $('#startDate').val();
+                var endDate = $('#endDate').val();
+                var dateColumn = data[1]; // Fecha Emisión (dd-mm-yyyy)
+                if (!startDate && !endDate) return true;
+                var parts = dateColumn.split('-');
+                var date = new Date(parts[2], parts[1] - 1, parts[0]);
+                var start = startDate ? new Date(startDate) : null;
+                var end = endDate ? new Date(endDate) : null;
+                if (start && end) {
+                    return date >= start && date <= end;
+                } else if (start) {
+                    return date >= start;
+                } else if (end) {
+                    return date <= end;
                 }
+                return true;
+            });
+            $('#startDate, #endDate').on('change', function() {
+                table.draw();
+            });
+            $('#clearFilters').on('click', function() {
+                $('#startDate').val('');
+                $('#endDate').val('');
+                table.draw();
             });
         });
     </script>

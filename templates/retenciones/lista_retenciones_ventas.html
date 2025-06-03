@@ -19,6 +19,111 @@
     <link href="{{ url_for('static', filename='assets/css/app.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='assets/css/icons.css') }}" rel="stylesheet">
     <title>Retenciones de Ventas</title>
+    
+    <!-- Estilos para el reporte de impresión -->
+    <style id="print-styles">
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #print-report, #print-report * {
+                visibility: visible;
+            }
+            #print-report {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+        }
+        
+        #print-report {
+            display: none;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        #print-report .document {
+            background-color: white;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        #print-report .header {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+        
+        #print-report .company-name {
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        #print-report .rif {
+            font-weight: bold;
+        }
+        
+        #print-report .address {
+            color: #666;
+            font-size: 11px;
+        }
+        
+        #print-report .title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+            margin: 20px 0;
+        }
+        
+        #print-report .period-info {
+            margin-bottom: 20px;
+            font-size: 11px;
+        }
+        
+        #print-report .table-container {
+            overflow-x: auto;
+        }
+        
+        #print-report table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+        }
+        
+        #print-report th, #print-report td {
+            border: 1px solid #000;
+            padding: 3px;
+            text-align: left;
+            vertical-align: top;
+        }
+        
+        #print-report th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        #print-report .number-cell {
+            text-align: right;
+        }
+        
+        #print-report .center-cell {
+            text-align: center;
+        }
+        
+        #print-report .total-row {
+            font-weight: bold;
+            background-color: #f9f9f9;
+        }
+        
+        #print-report .subtotal-row {
+            background-color: #f5f5f5;
+        }
+    </style>
 </head>
 
 <body>
@@ -43,6 +148,13 @@
                                 <i class="bx bx-arrow-back"></i>Volver
                             </a>
                         </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <input type="date" class="form-control radius-30" id="startDate" placeholder="Fecha Inicio">
+                        <input type="date" class="form-control radius-30" id="endDate" placeholder="Fecha Fin">
+                        <button class="btn btn-secondary radius-30" id="clearFilters">
+                            <i class="bx bx-reset"></i> Limpiar Filtros
+                        </button>
                     </div>
                     <div class="table-responsive">
                         <table class="table mb-0" id="retencionesTable">
@@ -91,6 +203,47 @@
         </div>
     </div>
 
+    <!-- Contenido del reporte para impresión (oculto) -->
+    <div id="print-report">
+        <div class="document">
+            <div class="header">
+                <div class="company-name">RAZON SOCIAL,C.A</div>
+                <div class="rif">R.I.F. J-123456789-9</div>
+                <div class="address">Dirección: AV LA MARIPOSA LOCAL S/N SECTOR BARRIO EL SOCORRO TOCUYITO CARABOBO ZONA POSTAL 2035</div>
+            </div>
+            
+            <div class="title">Libro de Retenciones de Iva Sobre Ventas</div>
+            
+            <div class="period-info">
+                <strong>Mes:</strong> <span id="print-period"></span><br>
+                <strong>Pag:</strong> 1
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>COMPROBANTE</th>
+                            <th>FECHA FECHA<br>COMPRA</th>
+                            <th>FACTURA</th>
+                            <th>FACTURA</th>
+                            <th>NOMBRE DEL CLIENTE</th>
+                            <th>R.I.F.</th>
+                            <th>BASE INCLUYE IVA</th>
+                            <th>EXENTO</th>
+                            <th>BASE IMPONIBLE</th>
+                            <th>IVA</th>
+                            <th>IVA RETENIDO</th>
+                        </tr>
+                    </thead>
+                    <tbody id="print-table-body">
+                        <!-- Los datos se llenarán dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="{{ url_for('static', filename='assets/js/bootstrap.bundle.min.js') }}"></script>
     <!--plugins-->
@@ -102,16 +255,151 @@
     <script src="{{ url_for('static', filename='assets/plugins/datatable/js/dataTables.bootstrap5.min.js') }}"></script>
     <script>
         $(document).ready(function() {
-            $('#retencionesTable').DataTable({
+            var table = $('#retencionesTable').DataTable({
                 "order": [[1, "desc"]],
                 "language": {
                     "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
-                }
+                },
+                dom: 'Bfrtip',
+                buttons: [
+                    'copy', 
+                    'excel', 
+                    'pdf', 
+                    {
+                        text: 'Imprimir Reporte',
+                        action: function (e, dt, node, config) {
+                            generatePrintReport();
+                        }
+                    }
+                ]
             });
+            
+            // Filtro de fecha personalizado
+            $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                var startDate = $('#startDate').val();
+                var endDate = $('#endDate').val();
+                var dateColumn = data[1]; // Fecha Emisión (dd-mm-yyyy)
+                if (!startDate && !endDate) return true;
+                var parts = dateColumn.split('-');
+                var date = new Date(parts[2], parts[1] - 1, parts[0]);
+                var start = startDate ? new Date(startDate) : null;
+                var end = endDate ? new Date(endDate) : null;
+                if (start && end) {
+                    return date >= start && date <= end;
+                } else if (start) {
+                    return date >= start;
+                } else if (end) {
+                    return date <= end;
+                }
+                return true;
+            });
+            
+            $('#startDate, #endDate').on('change', function() {
+                table.draw();
+            });
+            
+            $('#clearFilters').on('click', function() {
+                $('#startDate').val('');
+                $('#endDate').val('');
+                table.draw();
+            });
+            
+            // Función para generar el reporte de impresión
+            function generatePrintReport() {
+                var printTableBody = $('#print-table-body');
+                printTableBody.empty();
+                
+                // Obtener datos filtrados de la tabla
+                var data = table.rows({search: 'applied'}).data();
+                var totalBaseIncluida = 0;
+                var totalExento = 0;
+                var totalBaseImponible = 0;
+                var totalIva = 0;
+                var totalIvaRetenido = 0;
+                
+                // Generar filas de datos
+                for (var i = 0; i < data.length; i++) {
+                    var row = data[i];
+                    var valorRetencion = parseFloat(row[5]);
+                    var baseImponible = valorRetencion / 0.75 * 10; // Estimación basada en el patrón
+                    var baseIncluida = baseImponible * 1.16;
+                    var iva = baseIncluida - baseImponible;
+                    
+                    totalBaseIncluida += baseIncluida;
+                    totalBaseImponible += baseImponible;
+                    totalIva += iva;
+                    totalIvaRetenido += valorRetencion;
+                    
+                    var printRow = `
+                        <tr>
+                            <td class="center-cell">${row[0]}</td>
+                            <td class="center-cell">${row[1]}</td>
+                            <td class="center-cell">${row[3]}</td>
+                            <td class="center-cell">${row[1]}</td>
+                            <td>{{ cliente.nombre }} {{ cliente.rif if cliente.rif else '' }}</td>
+                            <td class="center-cell">${baseIncluida.toFixed(2)}</td>
+                            <td class="number-cell">0.00</td>
+                            <td class="number-cell">${baseImponible.toFixed(2)}</td>
+                            <td class="number-cell">${iva.toFixed(2)}</td>
+                            <td class="number-cell">${valorRetencion.toFixed(2)}</td>
+                        </tr>
+                    `;
+                    printTableBody.append(printRow);
+                }
+                
+                // Agregar fila de subtotales
+                var subtotalRow = `
+                    <tr class="subtotal-row">
+                        <td colspan="5" class="center-cell"><strong>SUB-TOTALES:</strong></td>
+                        <td class="number-cell"><strong>${totalBaseIncluida.toFixed(2)}</strong></td>
+                        <td class="number-cell"><strong>0.00</strong></td>
+                        <td class="number-cell"><strong>${totalBaseImponible.toFixed(2)}</strong></td>
+                        <td class="number-cell"><strong>${totalIva.toFixed(2)}</strong></td>
+                        <td class="number-cell"><strong>${totalIvaRetenido.toFixed(2)}</strong></td>
+                    </tr>
+                    <tr>
+                        <td colspan="10" style="height: 20px;"></td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="5" class="center-cell"><strong>TOTALES:</strong></td>
+                        <td class="number-cell"><strong>${totalBaseIncluida.toFixed(2)}</strong></td>
+                        <td class="number-cell"><strong>0.00</strong></td>
+                        <td class="number-cell"><strong>${totalBaseImponible.toFixed(2)}</strong></td>
+                        <td class="number-cell"><strong>${totalIva.toFixed(2)}</strong></td>
+                        <td class="number-cell"><strong>${totalIvaRetenido.toFixed(2)}</strong></td>
+                    </tr>
+                `;
+                printTableBody.append(subtotalRow);
+                
+                // Establecer el período
+                var startDate = $('#startDate').val();
+                var endDate = $('#endDate').val();
+                var periodText = '';
+                
+                if (startDate && endDate) {
+                    var start = new Date(startDate);
+                    var end = new Date(endDate);
+                    var monthNames = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
+                        "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+                    periodText = `${monthNames[start.getMonth()]} - ${start.getFullYear()} periodo desde ${start.toLocaleDateString('es-ES')} hasta ${end.toLocaleDateString('es-ES')}`;
+                } else {
+                    var now = new Date();
+                    var monthNames = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
+                        "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+                    periodText = `${monthNames[now.getMonth()]} - ${now.getFullYear()}`;
+                }
+                
+                $('#print-period').text(periodText);
+                
+                // Mostrar el reporte y ejecutar la impresión
+                $('#print-report').show();
+                window.print();
+                $('#print-report').hide();
+            }
         });
     </script>
     <!--app JS-->
     <script src="{{ url_for('static', filename='assets/js/app.js') }}"></script>
 </body>
 
-</html> 
+</html>

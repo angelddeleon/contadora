@@ -54,7 +54,7 @@
                 control: "{{ compra.control or '' }}",
                 fechafactura: "{{ compra.fechafactura.strftime('%Y-%m-%d') }}",
                 fechar: "{{ compra.fechar.strftime('%Y-%m-%d') }}",
-                provedor: "{{ compra.provedor|replace('"', '\\"') }}",
+                provedor: "{{ compra.provedor|replace('"', '\"') }}",
                 rif: "{{ compra.rif }}",
                 montoTotal: {{ compra.montoTotal }},
                 exentas: {{ compra.exentas }},
@@ -62,7 +62,9 @@
                 iva: {{ compra.iva }},
                 porcentaje_iva: {{ compra.porcentaje_iva }},
                 facturapolar: {{ compra.facturapolar|tojson }},
-                documento: "{{ compra.documento or 'FAC' }}"
+                documento: "{{ compra.documento or 'FAC' }}",
+                numero_comprobante_retencion: "{% if compra.idfacturacompra in retenciones %}{{ retenciones[compra.idfacturacompra].numero_comprobante }}{% else %}{% endif %}",
+                valor_retencion: {% if compra.idfacturacompra in retenciones %}{{ retenciones[compra.idfacturacompra].valor_retencion|float }}{% else %}0.00{% endif %}
             }{% if not loop.last %},{% endif %}
             {% endfor %}
         ];
@@ -328,37 +330,42 @@
                         <tr>
                             <th colspan="5" class="multi-header section-header">DATOS DE LAS FACTURA</th>
                             <th rowspan="2"></th>
-                            <th rowspan="2" class="section-header">TOTAL COMPRAS<br>INCLUYENDO<br>I.V.A.</th>
+
+                            <th rowspan="2" class="section-header">TOTAL COMPRAS</th>
+                            <th rowspan="2" class="section-header"></th>
                             <th rowspan="2" class="section-header">SIN<br>DERECHO<br>A<br>CREDITO</th>
                             <th colspan="5" class="multi-header section-header">CON DERECHO A CREDITO</th>
                             <th colspan="2" class="multi-header"></th>
                         </tr>
                         <tr>
-                            <th class="sub-header">FECHA.</th>
-                            <th class="sub-header">FECHA<br>FACTURA</th>
-                            <th class="sub-header">FACTURA<br>NUMERO</th>
-                            <th class="sub-header">DOC</th>
-                            <th class="sub-header">CONTROL</th>
-                            <th class="sub-header">NOMBRE PROVEEDOR</th>
-                            <th class="sub-header">R.I.F.</th>
+                            <th class="sub-header"></th>
+                            <th class="sub-header"></th>
+                            <th class="sub-header"></th>
+                            <th class="sub-header"></th>
+                            <th class="sub-header"></th>
+                            <th class="sub-header"></th>
+
                             <th colspan="2" class="sub-header center-align">IMPORTACION</th>
                             <th colspan="2" class="sub-header center-align">NACIONAL</th>
                             <th class="sub-header">Comprobante</th>
                             <th class="sub-header">RETENCION</th>
                         </tr>
                         <tr>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
+                            <th>FECHA.</th>
+                            <th>FECHA<br>FACTURA</th>
+                            <th>FACTURA<br>NUMERO</th>
+                            <th>DOC</th>
+                            <th>CONTROL</th>
+                            <th>NOMBRE PROVEEDOR</th>
+                            <th>R.I.F.</th>
+                            <th>INCLUYENDO<br>I.V.A.</th>
                             <th></th>
                             <th></th>
                             <th>BASE</th>
                             <th>I.V.A.</th>
                             <th>BASE</th>
                             <th>I.V.A.</th>
+                            <th></th>
                             <th></th>
                             <th></th>
                         </tr>`;
@@ -391,7 +398,6 @@
                     var baseNacional = parseFloat(compra.base);
                     var ivaNacional = parseFloat(compra.iva);
                     var comprobante = compra.facturapolar ? 'POLAR' : '';
-                    var retencion = 0; // Asumimos que no hay retención por defecto
 
                     // Acumular totales
                     totalCompras += montoTotal;
@@ -400,7 +406,7 @@
                     totalIvaImportacion += ivaImportacion;
                     totalBaseNacional += baseNacional;
                     totalIvaNacional += ivaNacional;
-                    totalRetencion += retencion;
+                    totalRetencion += parseFloat(compra.valor_retencion);
 
                     reportHTML += `
                         <tr>
@@ -413,12 +419,13 @@
                             <td>${rif}</td>
                             <td class="right-align">${formatNumber(montoTotal)}</td>
                             <td class="right-align">${formatNumber(exentas)}</td>
+                            <th></th>
                             <td class="right-align">${formatNumber(baseImportacion)}</td>
                             <td class="right-align">${formatNumber(ivaImportacion)}</td>
                             <td class="right-align">${formatNumber(baseNacional)}</td>
                             <td class="right-align">${formatNumber(ivaNacional)}</td>
-                            <td>${comprobante}</td>
-                            <td class="right-align">${formatNumber(retencion)}</td>
+                            <td>${compra.numero_comprobante_retencion}</td>
+                            <td class="right-align">${formatNumber(compra.valor_retencion)}</td>
                         </tr>`;
                 });
 
@@ -428,6 +435,7 @@
                             <td colspan="7" class="right-align">SUB-TOTALES:</td>
                             <td class="right-align">${formatNumber(totalCompras)}</td>
                             <td class="right-align">${formatNumber(totalExentos)}</td>
+                            <th></th>
                             <td class="right-align">${formatNumber(totalBaseImportacion)}</td>
                             <td class="right-align">${formatNumber(totalIvaImportacion)}</td>
                             <td class="right-align">${formatNumber(totalBaseNacional)}</td>
@@ -439,6 +447,7 @@
                             <td colspan="7" class="right-align">TOTALES:</td>
                             <td class="right-align">${formatNumber(totalCompras)}</td>
                             <td class="right-align">${formatNumber(totalExentos)}</td>
+                            <th></th>
                             <td class="right-align">${formatNumber(totalBaseImportacion)}</td>
                             <td class="right-align">${formatNumber(totalIvaImportacion)}</td>
                             <td class="right-align">${formatNumber(totalBaseNacional)}</td>
