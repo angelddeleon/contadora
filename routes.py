@@ -147,8 +147,33 @@ def editar_venta(venta_id):
             venta.iva = float(request.form['iva'])
             venta.exentas = float(request.form['exentas']) if request.form.get('exentas') else 0.00
             venta.porcentaje_iva = float(request.form['porcentaje_iva'])
-            
             db.session.commit()
+
+            # Lógica IGTF
+            monto_igtf = request.form.get('monto_igtf')
+            porcentaje_igtf = request.form.get('porcentaje_igtf')
+            tasa = request.form.get('tasa')
+            cantidad_dolares = request.form.get('cantidad_dolares')
+            igtf = IGTFVenta.query.filter_by(idfacturaventa=venta.idfacturaventa).first()
+            if any([monto_igtf, porcentaje_igtf, tasa, cantidad_dolares]):
+                if igtf:
+                    igtf.monto_igtf = monto_igtf or 0
+                    igtf.porcentaje_igtf = porcentaje_igtf or 0
+                    igtf.tasa = tasa or 0
+                    igtf.cantidad_dolares = cantidad_dolares or 0
+                else:
+                    igtf = IGTFVenta(
+                        idfacturaventa=venta.idfacturaventa,
+                        monto_igtf=monto_igtf or 0,
+                        porcentaje_igtf=porcentaje_igtf or 0,
+                        tasa=tasa or 0,
+                        cantidad_dolares=cantidad_dolares or 0
+                    )
+                    db.session.add(igtf)
+            elif igtf:
+                db.session.delete(igtf)
+            db.session.commit()
+
             flash('Venta actualizada con éxito', 'success')
             return redirect(url_for('main.cliente_libro_ventas', cliente_id=venta.id_cliente))
         except Exception as e:
@@ -1046,15 +1071,22 @@ def crear_retencion_venta(cliente_id, factura_id):
                 cantidad_dolares = request.form.get('cantidad_dolares')
 
                 if any([monto_igtf, porcentaje_igtf, tasa, cantidad_dolares]):
-                    igtf = IGTFVenta(
-                        idfacturaventa=nueva_retencion.idfacturaventa,
-                        monto_igtf=monto_igtf or 0,
-                        porcentaje_igtf=porcentaje_igtf or 0,
-                        tasa=tasa or 0,
-                        cantidad_dolares=cantidad_dolares or 0
-                    )
-                    db.session.add(igtf)
-                    db.session.commit()
+                    igtf = IGTFVenta.query.filter_by(idfacturaventa=nueva_retencion.idfacturaventa).first()
+                    if igtf:
+                        igtf.monto_igtf = monto_igtf or 0
+                        igtf.porcentaje_igtf = porcentaje_igtf or 0
+                        igtf.tasa = tasa or 0
+                        igtf.cantidad_dolares = cantidad_dolares or 0
+                    else:
+                        igtf = IGTFVenta(
+                            idfacturaventa=nueva_retencion.idfacturaventa,
+                            monto_igtf=monto_igtf or 0,
+                            porcentaje_igtf=porcentaje_igtf or 0,
+                            tasa=tasa or 0,
+                            cantidad_dolares=cantidad_dolares or 0
+                        )
+                        db.session.add(igtf)
+                db.session.commit()
                 
                 flash('Retención de venta creada exitosamente', 'success')
                 return redirect(url_for('main.cliente_libro_ventas', cliente_id=cliente_id))
