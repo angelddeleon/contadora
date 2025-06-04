@@ -316,3 +316,15 @@ class RetencionCompra(db.Model):
             'porcentaje_retencion': float(self.porcentaje_retencion),
             'valor_retencion': float(self.valor_retencion)
         }
+
+
+class IGTFVenta(db.Model):
+    __tablename__ = 'igtf_ventas'
+    id_igtf = db.Column(db.Integer, primary_key=True)
+    idfacturaventa = db.Column(db.Integer, db.ForeignKey('libro_ventas.idfacturaventa'), nullable=False)
+    monto_igtf = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    porcentaje_igtf = db.Column(db.Numeric(5, 2), nullable=False, default=0)
+    tasa = db.Column(db.Numeric(12, 4), nullable=False, default=0)
+    cantidad_dolares = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+
+    venta = db.relationship('LibroVenta', backref='igtf_venta')

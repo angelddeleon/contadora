@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Facturas con IGTF</title>
+    <link href="{{ url_for('static', filename='assets/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='assets/css/app.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='assets/css/icons.css') }}" rel="stylesheet">
+</head>
+<body>
+    {% include 'partials/sidebar.html' %}
+    <div class="page-wrapper">
+        <div class="page-content">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-lg-flex align-items-center mb-4 gap-3">
+                        <div class="position-relative">
+                            <h4 class="mb-0">Facturas con IGTF - {{ cliente.nombre }}</h4>
+                        </div>
+                        <div class="ms-auto">
+                            <a href="{{ url_for('main.cliente_libro_ventas', cliente_id=cliente.id_cliente) }}" class="btn btn-secondary radius-30">
+                                <i class="bx bx-arrow-back"></i> Volver
+                            </a>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <input type="text" class="form-control radius-30" id="searchInput" placeholder="Buscar...">
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table mb-0" id="igtfTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>N° Factura</th>
+                                    <th>Cliente</th>
+                                    <th>Fecha</th>
+                                    <th>Monto IGTF</th>
+                                    <th>% IGTF</th>
+                                    <th>Tasa</th>
+                                    <th>Cant. $</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for venta, igtf in facturas_igtf %}
+                                <tr>
+                                    <td>{{ venta.numerofactura }}</td>
+                                    <td>{{ venta.cliente }}</td>
+                                    <td>{{ venta.fechafactura.strftime('%d-%m-%Y') }}</td>
+                                    <td>{{ "%.2f"|format(igtf.monto_igtf|float) }}</td>
+                                    <td>{{ "%.2f"|format(igtf.porcentaje_igtf|float) }}</td>
+                                    <td>{{ "%.4f"|format(igtf.tasa|float) }}</td>
+                                    <td>{{ "%.2f"|format(igtf.cantidad_dolares|float) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='assets/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/jquery.min.js') }}"></script>
+    <script>
+        // Búsqueda en la tabla IGTF
+        $(document).ready(function() {
+            $("#searchInput").on("keyup", function() {
+                var value = $(this).val().toLowerCase();
+                $("#igtfTable tbody tr").filter(function() {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+                });
+            });
+        });
+    </script>
+</body>
+</html> 

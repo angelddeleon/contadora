@@ -1,5 +1,5 @@
 from flask import Flask, render_template, redirect, url_for, request, flash, Blueprint, jsonify, current_app
-from models import db, Usuario, LibroCompra, LibroVenta, Cliente, RetencionVenta, RetencionCompra
+from models import db, Usuario, LibroCompra, LibroVenta, Cliente, RetencionVenta, RetencionCompra, IGTFVenta
 from datetime import datetime, time, timedelta
 from flask_login import login_user, login_required, current_user, logout_user
 from functools import wraps
@@ -121,7 +121,11 @@ def librocompra():
 def libroventa():
     try:
         ventas = LibroVenta.query.all()
-        return render_template('libroventa.html', ventas=ventas)
+        try:
+            igtf_ventas = {i.idfacturaventa: i for i in IGTFVenta.query.all()}
+        except Exception:
+            igtf_ventas = {}
+        return render_template('libroventa.html', ventas=ventas, igtf_ventas=igtf_ventas)
     except Exception as e:
         current_app.logger.error(f'Error al cargar libro de ventas: {str(e)}')
         flash('Error al cargar el libro de ventas', 'danger')
@@ -226,17 +230,21 @@ def cliente_libro_ventas(cliente_id):
     try:
         cliente = Cliente.query.get_or_404(cliente_id)
         ventas = LibroVenta.query.filter_by(id_cliente=cliente_id).all()
-        
-        # Obtener las retenciones existentes para cada factura
         retenciones = {r.idfacturaventa: r for r in RetencionVenta.query.filter(
             RetencionVenta.idfacturaventa.in_([v.idfacturaventa for v in ventas])
         ).all()}
-        
+        try:
+            igtf_ventas = {i.idfacturaventa: i for i in IGTFVenta.query.filter(
+                IGTFVenta.idfacturaventa.in_([v.idfacturaventa for v in ventas])
+            ).all()}
+        except Exception:
+            igtf_ventas = {}
         return render_template('libroventa.html', 
                              ventas=ventas, 
                              cliente=cliente, 
                              filtro_cliente=True,
-                             retenciones=retenciones)
+                             retenciones=retenciones,
+                             igtf_ventas=igtf_ventas)
     except Exception as e:
         current_app.logger.error(f'Error al cargar libro de ventas del cliente: {str(e)}')
         flash('Error al cargar el libro de ventas del cliente', 'danger')
@@ -374,6 +382,23 @@ def crear_venta():
                 
                 db.session.add(nueva_venta)
                 db.session.commit()
+                
+                # Después de guardar la venta, guardar IGTF
+                monto_igtf = request.form.get('monto_igtf')
+                porcentaje_igtf = request.form.get('porcentaje_igtf')
+                tasa = request.form.get('tasa')
+                cantidad_dolares = request.form.get('cantidad_dolares')
+
+                if any([monto_igtf, porcentaje_igtf, tasa, cantidad_dolares]):
+                    igtf = IGTFVenta(
+                        idfacturaventa=nueva_venta.idfacturaventa,
+                        monto_igtf=monto_igtf or 0,
+                        porcentaje_igtf=porcentaje_igtf or 0,
+                        tasa=tasa or 0,
+                        cantidad_dolares=cantidad_dolares or 0
+                    )
+                    db.session.add(igtf)
+                    db.session.commit()
                 
                 flash('Venta creada exitosamente', 'success')
                 return redirect(url_for('main.cliente_libro_ventas', cliente_id=cliente_id))
@@ -1014,6 +1039,23 @@ def crear_retencion_venta(cliente_id, factura_id):
                 db.session.add(nueva_retencion)
                 db.session.commit()
                 
+                # Después de guardar la retención, guardar IGTF
+                monto_igtf = request.form.get('monto_igtf')
+                porcentaje_igtf = request.form.get('porcentaje_igtf')
+                tasa = request.form.get('tasa')
+                cantidad_dolares = request.form.get('cantidad_dolares')
+
+                if any([monto_igtf, porcentaje_igtf, tasa, cantidad_dolares]):
+                    igtf = IGTFVenta(
+                        idfacturaventa=nueva_retencion.idfacturaventa,
+                        monto_igtf=monto_igtf or 0,
+                        porcentaje_igtf=porcentaje_igtf or 0,
+                        tasa=tasa or 0,
+                        cantidad_dolares=cantidad_dolares or 0
+                    )
+                    db.session.add(igtf)
+                    db.session.commit()
+                
                 flash('Retención de venta creada exitosamente', 'success')
                 return redirect(url_for('main.cliente_libro_ventas', cliente_id=cliente_id))
                 
@@ -1226,3 +1268,12 @@ def eliminar_retencion_compra(cliente_id, retencion_id):
         return redirect(url_for('main.ver_retenciones_compras', 
                               cliente_id=cliente_id, 
                               factura_id=factura_id))
+
+@main_routes.route('/cliente/<int:cliente_id>/ventas_igtf')
+@admin_required
+def ventas_igtf(cliente_id):
+    cliente = Cliente.query.get_or_404(cliente_id)
+    facturas_igtf = db.session.query(LibroVenta, IGTFVenta)\
+        .join(IGTFVenta, LibroVenta.idfacturaventa == IGTFVenta.idfacturaventa)\
+        .filter(LibroVenta.id_cliente == cliente_id).all()
+    return render_template('ventas_igtf.html', facturas_igtf=facturas_igtf, cliente=cliente)

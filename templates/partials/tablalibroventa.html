@@ -18,6 +18,11 @@
                 </a>
             </div>
         </div>
+        {% if cliente %}
+        <a href="{{ url_for('main.ventas_igtf', cliente_id=cliente.id_cliente) }}" class="btn btn-warning radius-30 mt-2 mt-lg-0 mb-3">
+            <i class="bx bx-money"></i> Ver IGTF
+        </a>
+        {% endif %}
         <div class="table-responsive">
             <table class="table mb-0" id="example2">
                 <thead class="table-light">
@@ -35,6 +40,10 @@
                         <th>N° Retención</th>
                         <th>% Retención</th>
                         <th>Monto Retenido</th>
+                        <th>Monto IGTF</th>
+                        <th>% IGTF</th>
+                        <th>Tasa</th>
+                        <th>Cant. $</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -88,6 +97,34 @@
                             {{ "%.2f"|format(retenciones[venta.idfacturaventa].valor_retencion|float) }}
                             {% else %}
                             -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if venta.idfacturaventa in igtf_ventas %}
+                                {{ "%.2f"|format(igtf_ventas[venta.idfacturaventa].monto_igtf|float) }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if venta.idfacturaventa in igtf_ventas %}
+                                {{ "%.2f"|format(igtf_ventas[venta.idfacturaventa].porcentaje_igtf|float) }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if venta.idfacturaventa in igtf_ventas %}
+                                {{ "%.2f"|format(igtf_ventas[venta.idfacturaventa].tasa|float) }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if venta.idfacturaventa in igtf_ventas %}
+                                {{ "%.2f"|format(igtf_ventas[venta.idfacturaventa].cantidad_dolares|float) }}
+                            {% else %}
+                                -
                             {% endif %}
                         </td>
                         <td>
