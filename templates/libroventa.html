@@ -485,33 +485,9 @@
                 dom: 'Bfrtip',
                 buttons: [
                     {
-                        extend: 'copy',
-                        exportOptions: {
-                            columns: ':not(:last-child)'
-                        }
-                    },
-                    {
-                        extend: 'excel',
-                        exportOptions: {
-                            columns: ':not(:last-child)'
-                        }
-                    },
-                    {
-                        extend: 'pdf',
-                        exportOptions: {
-                            columns: ':not(:last-child)'
-                        }
-                    },
-                    {
                         text: 'Print',
                         action: function (e, dt, node, config) {
                             customPrint();
-                        }
-                    },
-                    {
-                        text: 'Word',
-                        action: function (e, dt, node, config) {
-                            exportToWord();
                         }
                     }
                 ],
