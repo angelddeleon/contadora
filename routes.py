@@ -1213,9 +1213,7 @@ def editar_retencion_venta(cliente_id, retencion_id):
             
             db.session.commit()
             flash('Retención de venta actualizada exitosamente', 'success')
-            return redirect(url_for('main.ver_retenciones_ventas', 
-                                  cliente_id=cliente_id, 
-                                  factura_id=retencion.idfacturaventa))
+            return redirect(url_for('main.cliente_libro_ventas', cliente_id=cliente_id))
         
         return render_template('retenciones/editar_retencion_venta.html',
                              cliente=cliente,
@@ -1224,9 +1222,7 @@ def editar_retencion_venta(cliente_id, retencion_id):
     except Exception as e:
         current_app.logger.error(f'Error al editar retención de venta: {str(e)}')
         flash('Error al editar la retención', 'danger')
-        return redirect(url_for('main.ver_retenciones_ventas', 
-                              cliente_id=cliente_id, 
-                              factura_id=retencion.idfacturaventa))
+        return redirect(url_for('main.cliente_libro_ventas', cliente_id=cliente_id))
 
 @main_routes.route('/cliente/<int:cliente_id>/editar-retencion-compra/<int:retencion_id>', methods=['GET', 'POST'])
 @admin_required
@@ -1244,9 +1240,7 @@ def editar_retencion_compra(cliente_id, retencion_id):
             
             db.session.commit()
             flash('Retención de compra actualizada exitosamente', 'success')
-            return redirect(url_for('main.ver_retenciones_compras', 
-                                  cliente_id=cliente_id, 
-                                  factura_id=retencion.idfacturacompra))
+            return redirect(url_for('main.cliente_libro_compras', cliente_id=cliente_id))
         
         return render_template('retenciones/editar_retencion_compra.html',
                              cliente=cliente,
@@ -1255,9 +1249,7 @@ def editar_retencion_compra(cliente_id, retencion_id):
     except Exception as e:
         current_app.logger.error(f'Error al editar retención de compra: {str(e)}')
         flash('Error al editar la retención', 'danger')
-        return redirect(url_for('main.ver_retenciones_compras', 
-                              cliente_id=cliente_id, 
-                              factura_id=retencion.idfacturacompra))
+        return redirect(url_for('main.cliente_libro_compras', cliente_id=cliente_id))
 
 @main_routes.route('/cliente/<int:cliente_id>/eliminar-retencion-venta/<int:retencion_id>', methods=['POST'])
 @admin_required

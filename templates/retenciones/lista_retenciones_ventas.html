@@ -18,7 +18,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <link href="{{ url_for('static', filename='assets/css/app.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='assets/css/icons.css') }}" rel="stylesheet">
-    <title>Retenciones de Ventas</title>
+    <title>OFICONTA</title>
     
     <!-- Estilos para el reporte de impresión -->
     <style id="print-styles">
@@ -143,9 +143,8 @@
                                 <i class="bx bxs-plus-square"></i>Nueva Retención
                             </a>
                             {% endif %}
-                            <a href="{{ url_for('main.ver_cliente', cliente_id=cliente.id_cliente) }}" 
-                               class="btn btn-secondary radius-30">
-                                <i class="bx bx-arrow-back"></i>Volver
+                            <a href="{{ url_for('main.clientes') }}" class="btn btn-secondary radius-30">
+                                <i class="bx bx-arrow-back"></i> Volver
                             </a>
                         </div>
                     </div>
