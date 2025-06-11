@@ -133,18 +133,16 @@
                                    class="btn btn-primary btn-sm radius-30 px-4" title="Editar Venta">
                                     <i class="bx bx-edit"></i> Editar
                                 </a>
-                                {% if cliente.contribuyente == 'especial' %}
-                                    {% if venta.idfacturaventa in retenciones %}
+                                {% if venta.idfacturaventa in retenciones %}
                                     <a href="{{ url_for('main.editar_retencion_venta', cliente_id=cliente.id_cliente, retencion_id=retenciones[venta.idfacturaventa].id_retencion) }}" 
                                        class="btn btn-warning btn-sm radius-30 px-4" title="Editar Retención">
                                         <i class="bx bx-edit"></i> Editar Retención
                                     </a>
-                                    {% else %}
+                                {% else %}
                                     <a href="{{ url_for('main.crear_retencion_venta', cliente_id=cliente.id_cliente, factura_id=venta.idfacturaventa) }}" 
                                        class="btn btn-info btn-sm radius-30 px-4" title="Crear Retención">
                                         <i class="bx bx-plus"></i> Crear Retención
                                     </a>
-                                    {% endif %}
                                 {% endif %}
                             </div>
                         </td>

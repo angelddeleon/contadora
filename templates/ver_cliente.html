@@ -59,16 +59,16 @@
                                 <a href="{{ url_for('main.cliente_libro_compras', cliente_id=cliente.id_cliente) }}" class="btn btn-success">
                                     <i class="bx bx-shopping-bag"></i> Ver Libro de Compras
                                 </a>
-                                <!-- Botón de retenciones de ventas solo para clientes especiales -->
-                                {% if cliente.contribuyente == 'especial' %}
+                                <!-- Botón de retenciones de ventas para todos los clientes -->
                                 <a href="{{ url_for('main.retenciones_ventas', cliente_id=cliente.id_cliente) }}" class="btn btn-info">
                                     <i class="bx bx-receipt"></i> Retenciones de Ventas
                                 </a>
-                                {% endif %}
-                                <!-- Botón de retenciones de compras para todos los clientes -->
+                                <!-- Botón de retenciones de compras solo para clientes especiales -->
+                                {% if cliente.contribuyente == 'especial' %}
                                 <a href="{{ url_for('main.retenciones_compras', cliente_id=cliente.id_cliente) }}" class="btn btn-info">
                                     <i class="bx bx-receipt"></i> Retenciones de Compras
                                 </a>
+                                {% endif %}
                                 <a href="{{ url_for('main.editar_cliente', cliente_id=cliente.id_cliente) }}" class="btn btn-warning">
                                     <i class="bx bx-edit"></i> Editar Cliente
                                 </a>

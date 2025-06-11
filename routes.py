@@ -926,10 +926,10 @@ limpiar_temporales()
 def retenciones_ventas(cliente_id):
     try:
         cliente = Cliente.query.get_or_404(cliente_id)
-        # Solo mostrar retenciones de ventas si es cliente especial
-        if cliente.contribuyente != 'especial':
-            flash('Este cliente no puede tener retenciones de ventas', 'warning')
-            return redirect(url_for('main.ver_cliente', cliente_id=cliente_id))
+        # Permitir retenciones de ventas para todos los clientes
+        # if cliente.contribuyente != 'especial':
+        #     flash('Este cliente no puede tener retenciones de ventas', 'warning')
+        #     return redirect(url_for('main.ver_cliente', cliente_id=cliente_id))
         
         # Obtener todas las retenciones de venta del cliente
         retenciones = db.session.query(RetencionVenta, LibroVenta)\
@@ -952,6 +952,11 @@ def retenciones_compras(cliente_id):
     try:
         cliente = Cliente.query.get_or_404(cliente_id)
         
+        # Bloquear retenciones de compras para clientes ordinarios
+        if cliente.contribuyente != 'especial':
+            flash('Solo los clientes especiales pueden tener retenciones de compras', 'warning')
+            return redirect(url_for('main.ver_cliente', cliente_id=cliente_id))
+            
         # Obtener todas las retenciones de compra del cliente
         retenciones = db.session.query(RetencionCompra, LibroCompra)\
             .join(LibroCompra, RetencionCompra.idfacturacompra == LibroCompra.idfacturacompra)\
@@ -972,10 +977,10 @@ def retenciones_compras(cliente_id):
 def ver_retenciones_ventas(cliente_id, factura_id):
     try:
         cliente = Cliente.query.get_or_404(cliente_id)
-        # Solo mostrar retenciones de ventas si es cliente especial
-        if cliente.contribuyente != 'especial':
-            flash('Este cliente no puede tener retenciones de ventas', 'warning')
-            return redirect(url_for('main.cliente_libro_ventas', cliente_id=cliente_id))
+        # Permitir retenciones de ventas para todos los clientes
+        # if cliente.contribuyente != 'especial':
+        #     flash('Este cliente no puede tener retenciones de ventas', 'warning')
+        #     return redirect(url_for('main.cliente_libro_ventas', cliente_id=cliente_id))
             
         factura = LibroVenta.query.get_or_404(factura_id)
         retenciones = RetencionVenta.query.filter_by(idfacturaventa=factura_id).all()
@@ -1009,10 +1014,10 @@ def ver_retenciones_compras(cliente_id, factura_id):
 def crear_retencion_venta(cliente_id, factura_id):
     try:
         cliente = Cliente.query.get_or_404(cliente_id)
-        # Solo permitir crear retenciones de ventas si es cliente especial
-        if cliente.contribuyente != 'especial':
-            flash('Este cliente no puede tener retenciones de ventas', 'warning')
-            return redirect(url_for('main.cliente_libro_ventas', cliente_id=cliente_id))
+        # Permitir retenciones de ventas para todos los clientes
+        # if cliente.contribuyente != 'especial':
+        #     flash('Este cliente no puede tener retenciones de ventas', 'warning')
+        #     return redirect(url_for('main.cliente_libro_ventas', cliente_id=cliente_id))
             
         factura = LibroVenta.query.get_or_404(factura_id)
         
