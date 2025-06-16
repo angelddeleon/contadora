@@ -617,19 +617,12 @@ def exportar_libro_compras_word():
         # Título
         title_para = doc.add_paragraph()
         title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        title_run = title_para.add_run("Libro de Compras")
+        title_run = title_para.add_run(f"{cliente.get('nombre', 'N/A')}\n")
         title_run.bold = True
-        title_run.font.size = Pt(14)
-        doc.add_paragraph()
+        title_run.font.size = Pt(9)
         
-        # Columna izquierda - Información de la empresa
-        left_cell = header_table.rows[0].cells[0]
-        left_para = left_cell.paragraphs[0]
-        
-        company_run = left_para.add_run(f"{cliente.get('nombre', 'N/A')}\n")
-        company_run.bold = True
-        company_run.font.size = Pt(9)
-        
+        left_para = header_table.rows[0].cells[0].paragraphs[0]
+        left_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
         left_para.add_run(f"R.I.F.  : {cliente.get('rif', 'N/A')}\n")
         left_para.add_run(f"Direccion : {cliente.get('direccion', 'N/A')}\n")
 
@@ -1325,6 +1318,10 @@ def exportar_libro_ventas_word():
         style = doc.styles['Normal']
         style.font.name = 'Courier New'
         style.font.size = Pt(8)
+        # === ENCABEZADO SUPERIOR ===
+        header_table = doc.add_table(rows=1, cols=1)
+        header_table.autofit = False
+        header_table.columns[0].width = Cm(18)
         # Título
         title_para = doc.add_paragraph()
         title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -1332,10 +1329,7 @@ def exportar_libro_ventas_word():
         title_run.bold = True
         title_run.font.size = Pt(14)
         doc.add_paragraph()
-        # Encabezado empresa
-        header_table = doc.add_table(rows=1, cols=1)
-        header_table.autofit = False
-        header_table.columns[0].width = Cm(18)
+        # Información de la empresa alineada a la izquierda
         left_cell = header_table.rows[0].cells[0]
         left_para = left_cell.paragraphs[0]
         left_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
@@ -1344,7 +1338,8 @@ def exportar_libro_ventas_word():
         company_run.font.size = Pt(9)
         left_para.add_run(f"R.I.F.  : {cliente.get('rif', 'N/A')}\n")
         left_para.add_run(f"Direccion : {cliente.get('direccion', 'N/A')}\n")
-        period_text = "ABRIL - 2025  periodo desde 01/04/2025 hasta 30/04/2025"
+        # Extraer período
+        period_text = ""
         company_info = soup.find('div', class_='company-info')
         if company_info:
             for text in company_info.stripped_strings:
@@ -1357,83 +1352,52 @@ def exportar_libro_ventas_word():
             for cell in row.cells:
                 set_cell_border(cell, top={'val': 'nil'}, bottom={'val': 'nil'}, left={'val': 'nil'}, right={'val': 'nil'})
         doc.add_paragraph()
-        # Tabla principal de ventas
+        # === TABLA PRINCIPAL DE DATOS ===
+        # Estructura igual a compras pero con columnas de ventas
         main_table = doc.add_table(rows=4, cols=17)
         column_widths = [
-            Cm(1.0), # Ope
-            Cm(1.2), # Fecha
-            Cm(1.5), # Factura Desde
-            Cm(1.5), # Factura Hasta
-            Cm(1.2), # Control
-            Cm(3.0), # Nombre Cliente
-            Cm(2.2), # RIF
-            Cm(1.8), # Total Ventas
-            Cm(1.5), # Exentos
-            Cm(1.2), # Base Reducida
-            Cm(1.0), # % Reducida
-            Cm(1.2), # IVA Reducido
-            Cm(1.2), # Base Nacional
-            Cm(1.0), # % Nacional
-            Cm(1.2), # IVA Nacional
-            Cm(1.5), # Comprobante
-            Cm(1.2)  # Retención
+            Cm(1.2),  # N° Factura
+            Cm(1.2),  # N° Control
+            Cm(1.5),  # Fecha Factura
+            Cm(2.5),  # RIF
+            Cm(3.0),  # Cliente
+            Cm(1.5),  # Tipo Documento
+            Cm(1.8),  # Monto Total
+            Cm(1.5),  # Base Imponible
+            Cm(1.2),  # % IVA
+            Cm(1.2),  # Monto IVA
+            Cm(1.5),  # N° Retención
+            Cm(1.2),  # % Retención
+            Cm(1.5),  # Monto Retenido
+            Cm(1.5),  # Monto IGTF
+            Cm(1.2),  # % IGTF
+            Cm(1.2),  # Tasa
+            Cm(1.2)   # Cant. $
         ]
         for i, width in enumerate(column_widths):
             for row in main_table.rows:
                 row.cells[i].width = width
-        # Primera fila de encabezados
+        # === PRIMERA FILA - ENCABEZADOS ===
         row1 = main_table.rows[0]
-        row1.cells[0].merge(row1.cells[1])
-        row1.cells[0].text = "No."
-        for i in range(2, 7):
-            row1.cells[2].merge(row1.cells[i])
-        row1.cells[2].text = "DATOS DE CLIENTE"
-        row1.cells[7].text = "TOTAL VENTAS\nINCLUYENDO\nI.V.A."
-        row1.cells[8].text = "EXENTOS\nNO\nGRAVADO"
-        for i in range(9, 12):
-            row1.cells[9].merge(row1.cells[i])
-        row1.cells[9].text = "CON DERECHO A CREDITO"
-        # Resto vacías
-        # Segunda fila de subencabezados
-        row2 = main_table.rows[1]
-        headers2 = [
-            "Ope", "Fecha", "FACTURA DESDE", "FACTURA HASTA", "Control", "Nombre", "Rif",
-            "", "", "ALICUOTA REDUCIDA", "%", "I.V.A.", "ALICUOTA NACIONAL", "%", "I.V.A.", "Comprobante", "Retencion"
+        headers1 = [
+            "N° Factura", "N° Control", "Fecha Factura", "RIF", "Cliente", "Tipo Documento",
+            "Monto Total", "Base Imponible", "% IVA", "Monto IVA", "N° Retención", "% Retención",
+            "Monto Retenido", "Monto IGTF", "% IGTF", "Tasa", "Cant. $"
         ]
-        for i, header in enumerate(headers2):
-            if header:
-                row2.cells[i].text = header
-                para = row2.cells[i].paragraphs[0]
-                para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                para.runs[0].bold = True
-                para.runs[0].font.size = Pt(7)
-        for cell in row2.cells:
-            set_cell_border(cell, bottom={'val': 'nil'})
-        # Tercera fila de encabezados detallados
-        row3 = main_table.rows[2]
-        headers3 = [
-            "", "", "Desde", "Hasta", "", "", "", "", "", "BASE", "%", "I.V.A.", "BASE", "%", "I.V.A.", "", ""
-        ]
-        for i, header in enumerate(headers3):
-            if header:
-                row3.cells[i].text = header
-                para = row3.cells[i].paragraphs[0]
-                para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                para.runs[0].bold = True
-                para.runs[0].font.size = Pt(7)
-        for cell in row3.cells:
-            set_cell_border(cell, bottom={'val': 'nil'})
-        # Cuarta fila vacía para separación visual
-        # Extraer y agregar datos
+        for i, header in enumerate(headers1):
+            row1.cells[i].text = header
+            para = row1.cells[i].paragraphs[0]
+            para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            for run in para.runs:
+                run.bold = True
+                run.font.size = Pt(8)
+        # === EXTRAER Y AGREGAR DATOS ===
         html_table = soup.find('table')
-        totals = {
-            'totalVentas': 0, 'totalExentos': 0, 'totalBaseReducida': 0, 'totalIvaReducido': 0,
-            'totalBaseNacional': 0, 'totalIvaNacional': 0, 'totalRetencion': 0
-        }
+        totals = [0] * 11  # Ajusta según columnas numéricas
         if html_table:
             for row in html_table.find_all('tr'):
                 cells = row.find_all('td')
-                if len(cells) >= 15 and not any(cls in row.get('class', []) for cls in ['subtotal', 'total']):
+                if len(cells) >= 17 and not any(cls in row.get('class', []) for cls in ['subtotal', 'total']):
                     data_row = main_table.add_row()
                     cell_data = [cell.get_text().strip() for cell in cells[:17]]
                     for i, data in enumerate(cell_data):
@@ -1441,16 +1405,12 @@ def exportar_libro_ventas_word():
                             cell = data_row.cells[i]
                             cell.text = data
                             para = cell.paragraphs[0]
-                            para.alignment = WD_ALIGN_PARAGRAPH.RIGHT if i >= 5 else WD_ALIGN_PARAGRAPH.LEFT
+                            para.alignment = WD_ALIGN_PARAGRAPH.RIGHT if i >= 6 else WD_ALIGN_PARAGRAPH.LEFT
                             run = para.runs[0] if para.runs else para.add_run(data)
                             run.font.size = Pt(8)
-        # Subtotales
+        # Subtotales y totales (puedes sumar si lo deseas)
         subtotal_row = main_table.add_row()
-        subtotal_data = ["", "", "", "", "", "", "SUB-TOTALES.",
-            format_number_spanish(totals['totalVentas']),
-            format_number_spanish(totals['totalExentos']),
-            format_number_spanish(totals['totalBaseReducida']), "", format_number_spanish(totals['totalIvaReducido']),
-            format_number_spanish(totals['totalBaseNacional']), "", format_number_spanish(totals['totalIvaNacional']), "", format_number_spanish(totals['totalRetencion'])]
+        subtotal_data = ["" for _ in range(6)] + ["SUB-TOTALES."] + ["" for _ in range(10)]
         for i, data in enumerate(subtotal_data):
             if i < len(subtotal_row.cells):
                 cell = subtotal_row.cells[i]
@@ -1461,13 +1421,8 @@ def exportar_libro_ventas_word():
                 run.bold = True
                 if i >= 6:
                     para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        # Totales
         total_row = main_table.add_row()
-        total_data = ["", "", "", "", "", "", "TOTALES.",
-            format_number_spanish(totals['totalVentas']),
-            format_number_spanish(totals['totalExentos']),
-            format_number_spanish(totals['totalBaseReducida']), "", format_number_spanish(totals['totalIvaReducido']),
-            format_number_spanish(totals['totalBaseNacional']), "", format_number_spanish(totals['totalIvaNacional']), "", format_number_spanish(totals['totalRetencion'])]
+        total_data = ["" for _ in range(6)] + ["TOTALES."] + ["" for _ in range(10)]
         for i, data in enumerate(total_data):
             if i < len(total_row.cells):
                 cell = total_row.cells[i]
@@ -1481,13 +1436,12 @@ def exportar_libro_ventas_word():
         border_style = {'val': 'single', 'sz': 4, 'color': '000000'}
         for i, row in enumerate(main_table.rows):
             for j, cell in enumerate(row.cells):
-                if i <= 3:
+                if i == 0:
                     set_cell_border(cell, top=border_style, bottom=border_style)
-                else:
-                    if i == len(main_table.rows) - 2:
-                        set_cell_border(cell, top=border_style)
-                    elif i == len(main_table.rows) - 1:
-                        set_cell_border(cell, bottom=border_style)
+                elif i == len(main_table.rows) - 2:
+                    set_cell_border(cell, top=border_style)
+                elif i == len(main_table.rows) - 1:
+                    set_cell_border(cell, bottom=border_style)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         cliente_name = re.sub(r'[^a-zA-Z0-9_-]', '_', cliente.get('nombre', 'cliente'))
         filename = f"libro_ventas_{cliente_name}_{timestamp}.docx"
