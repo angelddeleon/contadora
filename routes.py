@@ -632,13 +632,7 @@ def exportar_libro_compras_word():
         left_para.add_run(f"Mes : {period_text}\n")
         left_para.add_run("Pag:1")
         
-        # Columna derecha - Título
-        right_cell = header_table.rows[0].cells[1]
-        right_para = right_cell.paragraphs[0]
-        right_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        title_run = right_para.add_run("Libro de Compras")
-        title_run.bold = True
-        title_run.font.size = Pt(14)
+
         
         # Quitar bordes de la tabla de encabezado
         for row in header_table.rows:
@@ -728,8 +722,8 @@ def exportar_libro_compras_word():
         row2 = main_table.rows[1]
         headers2 = [
             "", "", "", "", "",
-            "NOMBRE DEL PROVEEDOR", "R.I.F.", "",
-            "", "IMPORTACION", "IMPORTACION", "NACIONAL", "NACIONAL", "", ""
+            "", "", "",
+            "", "", "IMPORTACION", "", "NACIONAL", "", ""
         ]
         
         for i, header in enumerate(headers2):
@@ -739,12 +733,15 @@ def exportar_libro_compras_word():
                 para.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 para.runs[0].bold = True
                 para.runs[0].font.size = Pt(7)
+        # Quitar el borde inferior de la segunda fila de encabezados
+        for cell in row2.cells:
+            set_cell_border(cell, bottom={'val': 'nil'})
         
         # === TERCERA FILA - ENCABEZADOS DETALLADOS ===
         row3 = main_table.rows[2]
         headers3 = [
-            "FECHA", "FACTURA", "FACTURA", "DOC", "CONTROL",
-            "", "", "", "", "BASE", "I.V.A.", "BASE", "I.V.A.", "Comprobante", "RETENCION"
+            "FECHA", "FECHA FACTURA", "FACTURA NUMERO", "DOC", "CONTROL",
+            "NOMBRE DEL PROVEEDOR", "R.I.F.", "", "", "BASE", "I.V.A.", "BASE", "I.V.A.", "Comprobante", "RETENCION"
         ]
         
         for i, header in enumerate(headers3):
@@ -754,21 +751,9 @@ def exportar_libro_compras_word():
                 para.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 para.runs[0].bold = True
                 para.runs[0].font.size = Pt(7)
-        
-        # === CUARTA FILA - SUBENCABEZADOS FINALES ===
-        row4 = main_table.rows[3]
-        headers4 = [
-            "FECHA.", "FECHA", "NUMERO", "", "",
-            "", "", "", "", "", "", "", "", "", ""
-        ]
-        
-        for i, header in enumerate(headers4):
-            if header:
-                row4.cells[i].text = header
-                para = row4.cells[i].paragraphs[0]
-                para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                para.runs[0].bold = True
-                para.runs[0].font.size = Pt(7)
+        # Quitar el borde inferior de la tercera fila de encabezados
+        for cell in row3.cells:
+            set_cell_border(cell, bottom={'val': 'nil'})
         
         # === EXTRAER Y AGREGAR DATOS ===
         html_table = soup.find('table')
@@ -1306,3 +1291,195 @@ def ventas_igtf(cliente_id):
         .join(IGTFVenta, LibroVenta.idfacturaventa == IGTFVenta.idfacturaventa)\
         .filter(LibroVenta.id_cliente == cliente_id).all()
     return render_template('ventas_igtf.html', facturas_igtf=facturas_igtf, cliente=cliente)
+
+@main_routes.route('/exportar_libro_ventas_word', methods=['POST'])
+def exportar_libro_ventas_word():
+    try:
+        data = request.get_json()
+        html_content = data.get('html_content')
+        cliente = data.get('cliente', {})
+        os.makedirs('temp', exist_ok=True)
+        soup = BeautifulSoup(html_content, 'html.parser')
+        doc = Document()
+        for section in doc.sections:
+            section.top_margin = Cm(1.0)
+            section.bottom_margin = Cm(1.0)
+            section.left_margin = Cm(0.8)
+            section.right_margin = Cm(0.8)
+            section.page_width = Cm(29.7)
+            section.page_height = Cm(21.0)
+        style = doc.styles['Normal']
+        style.font.name = 'Courier New'
+        style.font.size = Pt(8)
+        # Título
+        title_para = doc.add_paragraph()
+        title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        title_run = title_para.add_run("Libro de Ventas")
+        title_run.bold = True
+        title_run.font.size = Pt(14)
+        doc.add_paragraph()
+        # Encabezado empresa
+        header_table = doc.add_table(rows=1, cols=1)
+        header_table.autofit = False
+        header_table.columns[0].width = Cm(18)
+        left_cell = header_table.rows[0].cells[0]
+        left_para = left_cell.paragraphs[0]
+        left_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        company_run = left_para.add_run(f"{cliente.get('nombre', 'N/A')}\n")
+        company_run.bold = True
+        company_run.font.size = Pt(9)
+        left_para.add_run(f"R.I.F.  : {cliente.get('rif', 'N/A')}\n")
+        left_para.add_run(f"Direccion : {cliente.get('direccion', 'N/A')}\n")
+        period_text = "ABRIL - 2025  periodo desde 01/04/2025 hasta 30/04/2025"
+        company_info = soup.find('div', class_='company-info')
+        if company_info:
+            for text in company_info.stripped_strings:
+                if "Mes :" in text:
+                    period_text = text.replace("Mes : ", "")
+                    break
+        left_para.add_run(f"Mes : {period_text}\n")
+        left_para.add_run("Pag:1")
+        for row in header_table.rows:
+            for cell in row.cells:
+                set_cell_border(cell, top={'val': 'nil'}, bottom={'val': 'nil'}, left={'val': 'nil'}, right={'val': 'nil'})
+        doc.add_paragraph()
+        # Tabla principal de ventas
+        main_table = doc.add_table(rows=4, cols=17)
+        column_widths = [
+            Cm(1.0), # Ope
+            Cm(1.2), # Fecha
+            Cm(1.5), # Factura Desde
+            Cm(1.5), # Factura Hasta
+            Cm(1.2), # Control
+            Cm(3.0), # Nombre Cliente
+            Cm(2.2), # RIF
+            Cm(1.8), # Total Ventas
+            Cm(1.5), # Exentos
+            Cm(1.2), # Base Reducida
+            Cm(1.0), # % Reducida
+            Cm(1.2), # IVA Reducido
+            Cm(1.2), # Base Nacional
+            Cm(1.0), # % Nacional
+            Cm(1.2), # IVA Nacional
+            Cm(1.5), # Comprobante
+            Cm(1.2)  # Retención
+        ]
+        for i, width in enumerate(column_widths):
+            for row in main_table.rows:
+                row.cells[i].width = width
+        # Primera fila de encabezados
+        row1 = main_table.rows[0]
+        row1.cells[0].merge(row1.cells[1])
+        row1.cells[0].text = "No."
+        for i in range(2, 7):
+            row1.cells[2].merge(row1.cells[i])
+        row1.cells[2].text = "DATOS DE CLIENTE"
+        row1.cells[7].text = "TOTAL VENTAS\nINCLUYENDO\nI.V.A."
+        row1.cells[8].text = "EXENTOS\nNO\nGRAVADO"
+        for i in range(9, 12):
+            row1.cells[9].merge(row1.cells[i])
+        row1.cells[9].text = "CON DERECHO A CREDITO"
+        # Resto vacías
+        # Segunda fila de subencabezados
+        row2 = main_table.rows[1]
+        headers2 = [
+            "Ope", "Fecha", "FACTURA DESDE", "FACTURA HASTA", "Control", "Nombre", "Rif",
+            "", "", "ALICUOTA REDUCIDA", "%", "I.V.A.", "ALICUOTA NACIONAL", "%", "I.V.A.", "Comprobante", "Retencion"
+        ]
+        for i, header in enumerate(headers2):
+            if header:
+                row2.cells[i].text = header
+                para = row2.cells[i].paragraphs[0]
+                para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                para.runs[0].bold = True
+                para.runs[0].font.size = Pt(7)
+        for cell in row2.cells:
+            set_cell_border(cell, bottom={'val': 'nil'})
+        # Tercera fila de encabezados detallados
+        row3 = main_table.rows[2]
+        headers3 = [
+            "", "", "Desde", "Hasta", "", "", "", "", "", "BASE", "%", "I.V.A.", "BASE", "%", "I.V.A.", "", ""
+        ]
+        for i, header in enumerate(headers3):
+            if header:
+                row3.cells[i].text = header
+                para = row3.cells[i].paragraphs[0]
+                para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                para.runs[0].bold = True
+                para.runs[0].font.size = Pt(7)
+        for cell in row3.cells:
+            set_cell_border(cell, bottom={'val': 'nil'})
+        # Cuarta fila vacía para separación visual
+        # Extraer y agregar datos
+        html_table = soup.find('table')
+        totals = {
+            'totalVentas': 0, 'totalExentos': 0, 'totalBaseReducida': 0, 'totalIvaReducido': 0,
+            'totalBaseNacional': 0, 'totalIvaNacional': 0, 'totalRetencion': 0
+        }
+        if html_table:
+            for row in html_table.find_all('tr'):
+                cells = row.find_all('td')
+                if len(cells) >= 15 and not any(cls in row.get('class', []) for cls in ['subtotal', 'total']):
+                    data_row = main_table.add_row()
+                    cell_data = [cell.get_text().strip() for cell in cells[:17]]
+                    for i, data in enumerate(cell_data):
+                        if i < len(data_row.cells):
+                            cell = data_row.cells[i]
+                            cell.text = data
+                            para = cell.paragraphs[0]
+                            para.alignment = WD_ALIGN_PARAGRAPH.RIGHT if i >= 5 else WD_ALIGN_PARAGRAPH.LEFT
+                            run = para.runs[0] if para.runs else para.add_run(data)
+                            run.font.size = Pt(8)
+        # Subtotales
+        subtotal_row = main_table.add_row()
+        subtotal_data = ["", "", "", "", "", "", "SUB-TOTALES.",
+            format_number_spanish(totals['totalVentas']),
+            format_number_spanish(totals['totalExentos']),
+            format_number_spanish(totals['totalBaseReducida']), "", format_number_spanish(totals['totalIvaReducido']),
+            format_number_spanish(totals['totalBaseNacional']), "", format_number_spanish(totals['totalIvaNacional']), "", format_number_spanish(totals['totalRetencion'])]
+        for i, data in enumerate(subtotal_data):
+            if i < len(subtotal_row.cells):
+                cell = subtotal_row.cells[i]
+                cell.text = data
+                para = cell.paragraphs[0]
+                run = para.runs[0] if para.runs else para.add_run(data)
+                run.font.size = Pt(8)
+                run.bold = True
+                if i >= 6:
+                    para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        # Totales
+        total_row = main_table.add_row()
+        total_data = ["", "", "", "", "", "", "TOTALES.",
+            format_number_spanish(totals['totalVentas']),
+            format_number_spanish(totals['totalExentos']),
+            format_number_spanish(totals['totalBaseReducida']), "", format_number_spanish(totals['totalIvaReducido']),
+            format_number_spanish(totals['totalBaseNacional']), "", format_number_spanish(totals['totalIvaNacional']), "", format_number_spanish(totals['totalRetencion'])]
+        for i, data in enumerate(total_data):
+            if i < len(total_row.cells):
+                cell = total_row.cells[i]
+                cell.text = data
+                para = cell.paragraphs[0]
+                run = para.runs[0] if para.runs else para.add_run(data)
+                run.font.size = Pt(8)
+                run.bold = True
+                if i >= 6:
+                    para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        border_style = {'val': 'single', 'sz': 4, 'color': '000000'}
+        for i, row in enumerate(main_table.rows):
+            for j, cell in enumerate(row.cells):
+                if i <= 3:
+                    set_cell_border(cell, top=border_style, bottom=border_style)
+                else:
+                    if i == len(main_table.rows) - 2:
+                        set_cell_border(cell, top=border_style)
+                    elif i == len(main_table.rows) - 1:
+                        set_cell_border(cell, bottom=border_style)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        cliente_name = re.sub(r'[^a-zA-Z0-9_-]', '_', cliente.get('nombre', 'cliente'))
+        filename = f"libro_ventas_{cliente_name}_{timestamp}.docx"
+        filepath = os.path.join('temp', filename)
+        doc.save(filepath)
+        return jsonify({'filename': filename})
+    except Exception as e:
+        current_app.logger.error(f'Error al generar Word: {str(e)}')
+        return jsonify({'error': f'Error interno: {str(e)}'}, 500)

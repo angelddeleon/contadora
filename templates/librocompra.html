@@ -185,22 +185,42 @@
             function generatePrintReport() {
                 var table = $('#example2').DataTable();
                 var filteredData = [];
-                
                 // Obtener datos filtrados de la tabla
                 table.rows({ search: 'applied' }).every(function(rowIdx, tableLoop, rowLoop) {
                     var data = this.data();
-                    // Buscar la compra correspondiente en comprasData
-                    var numeroFactura = data[0]; // Ajusta este índice según tu tabla
-                    var compra = window.comprasData.find(c => c.numerofactura === numeroFactura);
+                    // Extraer solo el texto del número de factura (data[0] puede ser HTML)
+                    var div = document.createElement('div');
+                    div.innerHTML = data[0];
+                    var numeroFactura = div.textContent.trim();
+                    var fechaFactura = data[2]; // Fecha Factura en la tabla
+                    // Normaliza la fecha a 'YYYY-MM-DD'
+                    function normalizeDate(dateStr) {
+                        if (!dateStr) return '';
+                        // Si es YYYY-MM-DD
+                        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                            return dateStr;
+                        }
+                        // Si es DD-MM-YYYY
+                        if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) {
+                            var parts = dateStr.split('-');
+                            return parts[2] + '-' + parts[1] + '-' + parts[0];
+                        }
+                        // Si es DD/MM/YYYY
+                        if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+                            var parts = dateStr.split('/');
+                            return parts[2] + '-' + parts[1] + '-' + parts[0];
+                        }
+                        return dateStr;
+                    }
+                    var compra = window.comprasData.find(
+                        c => c.numerofactura === numeroFactura && normalizeDate(c.fechafactura) === normalizeDate(fechaFactura)
+                    );
+                    console.log('Fila:', numeroFactura, fechaFactura, '=>', compra);
                     if (compra) {
                         filteredData.push(compra);
                     }
                 });
-
-                // Si no se encontraron datos filtrados, usar todos los datos
-                if (filteredData.length === 0) {
-                    filteredData = window.comprasData;
-                }
+                // Elimina el fallback: si no hay compras filtradas, el Word estará vacío
 
                 // Información del cliente
                 var clienteInfo = window.clienteData;
@@ -255,7 +275,7 @@
                             text-align: center;
                             font-weight: bold;
                             font-size: 16px;
-                            margin-top: 10px;
+                            margin-bottom: 10px;
                         }
                         .clearfix:after {
                             content: "";
@@ -264,7 +284,7 @@
                         }
                         .divider {
                             border-top: 1px solid #000;
-                            margin: 10px 0;
+                            margin: 2px 0;
                             clear: both;
                         }
                         table {
@@ -310,7 +330,13 @@
                     </style>
                 </head>
                 <body>
+
                     <div class="header clearfix">
+
+                        <div class="title">
+                            Libro de Compras
+                        </div>
+
                         <div class="company-info">
                             <div style="font-weight: bold;">${clienteInfo.nombre}</div>
                             <div>R.I.F. : ${clienteInfo.rif}</div>
@@ -318,13 +344,7 @@
                             <div>Mes : ${periodText}</div>
                             <div>Pag:1</div>
                         </div>
-                    </div>
-
-                        <div class="title">
-                            Libro de Compras
-                        </div>
-
-                    <div class="divider"></div>
+                    </div>   
 
                     <table>
                         <tr>
@@ -351,7 +371,7 @@
                             <th class="sub-header">RETENCION</th>
                         </tr>
                         <tr>
-                            <th>FECHA.</th>
+
                             <th>FECHA<br>FACTURA</th>
                             <th>FACTURA<br>NUMERO</th>
                             <th>DOC</th>
