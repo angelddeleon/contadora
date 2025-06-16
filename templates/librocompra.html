@@ -418,6 +418,7 @@
                     var baseNacional = parseFloat(compra.base);
                     var ivaNacional = parseFloat(compra.iva);
                     var comprobante = compra.facturapolar ? 'POLAR' : '';
+                    var retencion = parseFloat(compra.valor_retencion) || 0;
 
                     // Acumular totales
                     totalCompras += montoTotal;
@@ -426,7 +427,7 @@
                     totalIvaImportacion += ivaImportacion;
                     totalBaseNacional += baseNacional;
                     totalIvaNacional += ivaNacional;
-                    totalRetencion += parseFloat(compra.valor_retencion);
+                    totalRetencion += retencion;
 
                     reportHTML += `
                         <tr>
@@ -445,7 +446,7 @@
                             <td class="right-align">${formatNumber(baseNacional)}</td>
                             <td class="right-align">${formatNumber(ivaNacional)}</td>
                             <td>${compra.numero_comprobante_retencion}</td>
-                            <td class="right-align">${formatNumber(compra.valor_retencion)}</td>
+                            <td class="right-align">${formatNumber(retencion)}</td>
                         </tr>`;
                 });
 

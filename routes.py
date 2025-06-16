@@ -572,6 +572,11 @@ def format_number_spanish(num):
     except:
         return "0.00"
 
+def parse_number_spanish(num_str):
+    if not num_str:
+        return 0.0
+    return float(num_str.replace('.', '').replace(',', '.'))
+
 @main_routes.route('/exportar_libro_compras_word', methods=['POST'])
 def exportar_libro_compras_word():
     try:
@@ -608,6 +613,14 @@ def exportar_libro_compras_word():
         header_table = doc.add_table(rows=1, cols=2)
         header_table.columns[0].width = Cm(12)
         header_table.columns[1].width = Cm(15)
+
+        # Título
+        title_para = doc.add_paragraph()
+        title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        title_run = title_para.add_run("Libro de Compras")
+        title_run.bold = True
+        title_run.font.size = Pt(14)
+        doc.add_paragraph()
         
         # Columna izquierda - Información de la empresa
         left_cell = header_table.rows[0].cells[0]
@@ -619,6 +632,7 @@ def exportar_libro_compras_word():
         
         left_para.add_run(f"R.I.F.  : {cliente.get('rif', 'N/A')}\n")
         left_para.add_run(f"Direccion : {cliente.get('direccion', 'N/A')}\n")
+
         
         # Extraer período
         period_text = "ABRIL - 2025  periodo desde 01/04/2025 hasta 30/04/2025"
@@ -776,16 +790,16 @@ def exportar_libro_compras_word():
                         text = cell.get_text().strip()
                         cell_data.append(text)
                         
-                        # Acumular totales
-                        if i >= 7 and text and text.replace('.', '').replace(',', '').replace('-', '').isdigit():
-                            num_value = float(text.replace('.', '').replace(',', '.'))
+                        # Acumular totales usando parse_number_spanish
+                        if i >= 7 and text:
+                            num_value = parse_number_spanish(text)
                             if i == 7: totals['totalCompras'] += num_value
                             elif i == 8: totals['totalExentos'] += num_value
                             elif i == 9: totals['totalBaseImportacion'] += num_value
                             elif i == 10: totals['totalIvaImportacion'] += num_value
                             elif i == 11: totals['totalBaseNacional'] += num_value
                             elif i == 12: totals['totalIvaNacional'] += num_value
-                            elif i == 13: totals['totalRetencion'] += num_value
+                            elif i == 14: totals['totalRetencion'] += num_value
                     
                     # Llenar celdas de la fila
                     for i, data in enumerate(cell_data):
