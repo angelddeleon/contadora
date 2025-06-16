@@ -101,14 +101,15 @@
             function parseDate(dateStr) {
                 if (!dateStr) return null;
                 var parts = dateStr.split('-');
-                // Crear fecha a las 00:00:00 para la comparación
-                return new Date(parts[2], parts[1] - 1, parts[0], 0, 0, 0);
+                // Crear fecha local sin desfase de horas
+                return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
             }
 
             // Función para formatear fecha de YYYY-MM-DD a DD/MM/YYYY
             function formatDate(dateStr) {
                 if (!dateStr) return '';
-                var date = new Date(dateStr);
+                var parts = dateStr.split('-');
+                var date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
                 var day = String(date.getDate()).padStart(2, '0');
                 var month = String(date.getMonth() + 1).padStart(2, '0');
                 var year = date.getFullYear();
@@ -123,22 +124,20 @@
                 });
             }
 
-            // Añadir el filtro de fecha personalizado
+            // Filtro personalizado
             $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
-                var startDate = $('#startDate').val();
-                var endDate = $('#endDate').val();
+                var startLibroCompras = $('#startLibroCompras').val();
+                var endLibroCompras = $('#endLibroCompras').val();
                 var dateColumn = data[2]; // Índice de la columna de fecha factura
-
-                if (!startDate && !endDate) return true;
-                if (startDate && !endDate) return true;
-                if (!startDate && endDate) return true;
-
                 var date = parseDate(dateColumn);
-                var start = startDate ? new Date(startDate + 'T00:00:00') : null;
-                var end = endDate ? new Date(endDate + 'T23:59:59') : null;
-
+                var start = startLibroCompras ? new Date(startLibroCompras + 'T00:00:00') : null;
+                var end = endLibroCompras ? new Date(endLibroCompras + 'T23:59:59') : null;
                 if (start && end) {
                     return date >= start && date <= end;
+                } else if (start && !end) {
+                    return date >= start;
+                } else if (!start && end) {
+                    return date <= end;
                 }
                 return true;
             });
@@ -226,26 +225,25 @@
                 var clienteInfo = window.clienteData;
                 
                 // Obtener fechas del filtro para el período
-                var startDate = $('#startDate').val();
-                var endDate = $('#endDate').val();
+                var startLibroCompras = $('#startLibroCompras').val();
+                var endLibroCompras = $('#endLibroCompras').val();
                 var monthNames = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
                     "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
                 
-                var periodText = "ABRIL - 2025  periodo desde 01/04/2025 hasta 30/04/2025";
-                if (startDate && endDate) {
-                    var start = new Date(startDate);
-                    var end = new Date(endDate);
-                    periodText = monthNames[start.getMonth()] + " - " + start.getFullYear() + 
-                               "  periodo desde " + formatDate(startDate.split('-').reverse().join('-')) + 
-                               " hasta " + formatDate(endDate.split('-').reverse().join('-'));
+                var periodText = "";
+                if (startLibroCompras && endLibroCompras) {
+                    var start = new Date(startLibroCompras);
+                    periodText = monthNames[start.getMonth()] + " - " + start.getFullYear() +
+                        "  periodo desde " + formatDate(startLibroCompras) +
+                        " hasta " + formatDate(endLibroCompras);
                 } else if (filteredData.length > 0) {
                     // Si no hay filtro de fecha, usar el rango de fechas de los datos
                     var fechas = filteredData.map(v => new Date(v.fechafactura)).sort();
                     var fechaInicio = fechas[0];
                     var fechaFin = fechas[fechas.length - 1];
-                    periodText = monthNames[fechaInicio.getMonth()] + " - " + fechaInicio.getFullYear() + 
-                               "  periodo desde " + formatDate(fechaInicio.toISOString().split('T')[0]) + 
-                               " hasta " + formatDate(fechaFin.toISOString().split('T')[0]);
+                    periodText = monthNames[fechaInicio.getMonth()] + " - " + fechaInicio.getFullYear() +
+                        "  periodo desde " + formatDate(fechaInicio.toISOString().split('T')[0]) +
+                        " hasta " + formatDate(fechaFin.toISOString().split('T')[0]);
                 }
 
                 // HTML con formato exacto del librocomprareporte.html
@@ -528,11 +526,9 @@
             
             table.buttons().container().appendTo('#example2_wrapper .col-md-6:eq(0)');
 
-            // Manejar el evento de cambio en los campos de fecha
-            $('#startDate, #endDate').on('change', function() {
-                if ($('#startDate').val() && $('#endDate').val()) {
-                    table.draw();
-                }
+            // Evento de cambio para los filtros
+            $('#startLibroCompras, #endLibroCompras').on('change', function() {
+                table.draw();
             });
 
             // Manejar la búsqueda en tiempo real
