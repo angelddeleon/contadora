@@ -891,6 +891,364 @@ def exportar_libro_compras_word():
         current_app.logger.error(f'Error al generar Word: {str(e)}')
         return jsonify({'error': f'Error interno: {str(e)}'}, 500)
 
+@main_routes.route('/exportar_libro_ventas_word', methods=['POST'])
+def exportar_libro_ventas_word():
+    try:
+        data = request.get_json()
+        html_content = data.get('html_content')
+        cliente = data.get('cliente', {})
+        
+        # Asegurar que el directorio temp existe
+        os.makedirs('temp', exist_ok=True)
+        
+        # Parsear HTML para extraer datos
+        soup = BeautifulSoup(html_content, 'html.parser')
+        
+        # Crear documento Word
+        doc = Document()
+        
+        # Configurar márgenes ajustados
+        for section in doc.sections:
+            section.top_margin = Cm(1.0)
+            section.bottom_margin = Cm(1.0)
+            section.left_margin = Cm(0.8)
+            section.right_margin = Cm(0.8)
+            section.page_width = Cm(29.7)  # A4 horizontal
+            section.page_height = Cm(21.0)
+        
+        # Configurar estilo base - Courier New para alineación perfecta
+        style = doc.styles['Normal']
+        style.font.name = 'Courier New'
+        style.font.size = Pt(8)
+        
+        # === ENCABEZADO SUPERIOR ===
+        # Información de la empresa
+        header_para = doc.add_paragraph()
+        header_run = header_para.add_run(f"{cliente.get('nombre', 'N/A')}\n")
+        header_run.bold = True
+        header_run.font.size = Pt(9)
+        
+        header_para.add_run(f"R.I.F. : {cliente.get('rif', 'N/A')}\n")
+        header_para.add_run(f"Direccion : {cliente.get('direccion', 'N/A')}\n")
+        
+        # Extraer período
+        period_text = "ABRIL - 2025 período desde 01/04/2025 hasta 30/04/2025"
+        company_info = soup.find('div', class_='company-info')
+        if company_info:
+            for text in company_info.stripped_strings:
+                if "Mes :" in text:
+                    period_text = text.replace("Mes : ", "")
+                    break
+        
+        header_para.add_run(f"Mes : {period_text}\n")
+        header_para.add_run("Pag:1")
+        
+        # Título del reporte
+        title_para = doc.add_paragraph()
+        title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        title_run = title_para.add_run("Libro de Ventas")
+        title_run.bold = True
+        title_run.font.size = Pt(14)
+        
+        # Línea divisoria
+        doc.add_paragraph()
+        
+        # === TABLA PRINCIPAL DE DATOS ===
+        # Crear tabla con 13 columnas (ajustado según nuevos requerimientos)
+        main_table = doc.add_table(rows=3, cols=13)
+        
+        # Configurar anchos de columnas (ajustado)
+        column_widths = [
+            Cm(0.8),  # Ope
+            Cm(1.2),  # Fecha
+            Cm(1.2),  # Factura Desde
+            Cm(1.2),  # Factura Hasta
+            Cm(1.5),  # Control
+            Cm(3.0),  # Nombre Cliente
+            Cm(1.8),  # RIF
+            Cm(1.8),  # Total Ventas
+            Cm(1.5),  # Exentos
+            Cm(1.2),  # Base Nacional
+            Cm(0.8),  # % Nacional
+            Cm(1.2),  # IVA Nacional
+            Cm(1.5)   # Retención
+        ]
+        
+        for i, width in enumerate(column_widths):
+            for row in main_table.rows:
+                row.cells[i].width = width
+        
+        # === PRIMERA FILA - ENCABEZADOS PRINCIPALES ===
+        row1 = main_table.rows[0]
+        
+        # Combinar celdas para "No."
+        merge_cell1 = row1.cells[0]
+        merge_cell1.merge(row1.cells[1])
+        merge_cell1.text = "No."
+        para1 = merge_cell1.paragraphs[0]
+        para1.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run1 = para1.runs[0]
+        run1.bold = True
+        run1.font.size = Pt(8)
+        
+        # Combinar celdas para "DATOS DE CLIENTE"
+        merge_cell2 = row1.cells[2]
+        for i in range(3, 7):
+            merge_cell2.merge(row1.cells[i])
+        merge_cell2.text = "DATOS DE CLIENTE"
+        para2 = merge_cell2.paragraphs[0]
+        para2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run2 = para2.runs[0]
+        run2.bold = True
+        run2.font.size = Pt(8)
+        
+        # TOTAL VENTAS
+        row1.cells[7].text = "TOTAL VENTAS\nINCLUYENDO\nI.V.A."
+        para7 = row1.cells[7].paragraphs[0]
+        para7.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        para7.runs[0].bold = True
+        para7.runs[0].font.size = Pt(7)
+        
+        # EXENTOS
+        row1.cells[8].text = "EXENTOS\nNO\nGRAVADO"
+        para8 = row1.cells[8].paragraphs[0]
+        para8.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        para8.runs[0].bold = True
+        para8.runs[0].font.size = Pt(7)
+        
+        # Combinar "CON DERECHO A CREDITO" (ahora solo para IVA Nacional)
+        merge_cell3 = row1.cells[9]
+        for i in range(10, 12):
+            merge_cell3.merge(row1.cells[i])
+        merge_cell3.text = "CON DERECHO A CREDITO"
+        para9 = merge_cell3.paragraphs[0]
+        para9.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        para9.runs[0].bold = True
+        para9.runs[0].font.size = Pt(8)
+        
+        # RETENCIÓN
+        row1.cells[12].text = "RETENCIÓN"
+        para12 = row1.cells[12].paragraphs[0]
+        para12.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        para12.runs[0].bold = True
+        para12.runs[0].font.size = Pt(8)
+        
+        # === SEGUNDA FILA - SUBENCABEZADOS ===
+        row2 = main_table.rows[1]
+        headers2 = [
+            "Ope", "Fecha", "FACTURA", "", "Control", "Nombre", "Rif",
+            "", "", "ALICUOTA NACIONAL", "", "", "Comprobante"
+        ]
+        
+        for i, header in enumerate(headers2):
+            if header:
+                row2.cells[i].text = header
+                para = row2.cells[i].paragraphs[0]
+                para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                para.runs[0].bold = True
+                para.runs[0].font.size = Pt(7)
+        
+        # Combinar celdas para FACTURA
+        merge_cell4 = row2.cells[2]
+        merge_cell4.merge(row2.cells[3])
+        merge_cell4.text = "FACTURA"
+        
+        # Combinar celdas para ALICUOTA NACIONAL
+        merge_cell5 = row2.cells[9]
+        merge_cell5.merge(row2.cells[10])
+        merge_cell5.text = "ALICUOTA NACIONAL"
+        
+        # === TERCERA FILA - ENCABEZADOS DETALLADOS ===
+        row3 = main_table.rows[2]
+        headers3 = [
+            "", "", "Desde", "Hasta", "", "", "",
+            "", "", "BASE", "%", "I.V.A.", "Número"
+        ]
+        
+        for i, header in enumerate(headers3):
+            if header:
+                row3.cells[i].text = header
+                para = row3.cells[i].paragraphs[0]
+                para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                para.runs[0].bold = True
+                para.runs[0].font.size = Pt(7)
+        
+        # === EXTRAER Y AGREGAR DATOS ===
+        html_table = soup.find('table')
+        totals = {
+            'totalVentas': 0,
+            'totalExentos': 0,
+            'totalBaseNacional': 0,
+            'totalIvaNacional': 0,
+            'totalRetencion': 0
+        }
+        
+        if html_table:
+            row_index = 0
+            for row in html_table.find_all('tr'):
+                cells = row.find_all('td')
+                if len(cells) >= 16 and not any(cls in row.get('class', []) for cls in ['subtotal', 'total']):
+                    # Agregar fila de datos
+                    data_row = main_table.add_row()
+                    row_index += 1
+                    
+                    # Mapear datos según la estructura esperada
+                    cell_data = []
+                    for i, cell in enumerate(cells[:16]):
+                        text = cell.get_text().strip()
+                        # Solo tomamos las columnas que necesitamos: 0-7, 8, 12-15
+                        if i < 8 or i == 8 or i >= 12:
+                            cell_data.append(text)
+                            
+                            # Acumular totales para columnas numéricas
+                            if i in [7, 8, 12, 14, 15] and text:
+                                try:
+                                    num_value = parse_number_spanish(text)
+                                    if i == 7: totals['totalVentas'] += num_value
+                                    elif i == 8: totals['totalExentos'] += num_value
+                                    elif i == 12: totals['totalBaseNacional'] += num_value
+                                    elif i == 14: totals['totalIvaNacional'] += num_value
+                                    elif i == 15: totals['totalRetencion'] += num_value
+                                except:
+                                    continue
+                    
+                    # Llenar celdas de la fila (solo las columnas que necesitamos)
+                    # Mapeo de columnas originales a nuevas:
+                    # 0: Ope, 1: Fecha, 2: Factura Desde, 3: Factura Hasta, 4: Control, 
+                    # 5: Nombre, 6: RIF, 7: Total Ventas, 8: Exentos, 
+                    # 12: Base Nacional, 13: % Nacional, 14: IVA Nacional, 15: Retención
+                    
+                    for i in range(8):  # Columnas 0-7 (Ope a Total Ventas)
+                        if i < len(data_row.cells) and i < len(cell_data):
+                            data_row.cells[i].text = cell_data[i]
+                            para = data_row.cells[i].paragraphs[0]
+                            run = para.runs[0] if para.runs else para.add_run(cell_data[i])
+                            run.font.size = Pt(8)
+                            
+                            # Alineación
+                            if i == 7:  # Total Ventas
+                                para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                            else:
+                                para.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                    
+                    # Exentos (columna 8)
+                    if len(data_row.cells) > 8 and len(cell_data) > 8:
+                        data_row.cells[8].text = cell_data[8]
+                        para = data_row.cells[8].paragraphs[0]
+                        run = para.runs[0] if para.runs else para.add_run(cell_data[8])
+                        run.font.size = Pt(8)
+                        para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                    
+                    # Base Nacional (columna 12 original -> 9 nueva)
+                    if len(data_row.cells) > 9 and len(cell_data) > 12:
+                        data_row.cells[9].text = cell_data[12]
+                        para = data_row.cells[9].paragraphs[0]
+                        run = para.runs[0] if para.runs else para.add_run(cell_data[12])
+                        run.font.size = Pt(8)
+                        para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                    
+                    # % Nacional (columna 13 original -> 10 nueva)
+                    if len(data_row.cells) > 10 and len(cell_data) > 13:
+                        data_row.cells[10].text = cell_data[13]
+                        para = data_row.cells[10].paragraphs[0]
+                        run = para.runs[0] if para.runs else para.add_run(cell_data[13])
+                        run.font.size = Pt(8)
+                        para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    
+                    # IVA Nacional (columna 14 original -> 11 nueva)
+                    if len(data_row.cells) > 11 and len(cell_data) > 14:
+                        data_row.cells[11].text = cell_data[14]
+                        para = data_row.cells[11].paragraphs[0]
+                        run = para.runs[0] if para.runs else para.add_run(cell_data[14])
+                        run.font.size = Pt(8)
+                        para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                    
+                    # Retención (columna 15 original -> 12 nueva)
+                    if len(data_row.cells) > 12 and len(cell_data) > 15:
+                        # Comprobante (número de retención) - tomamos el texto de la columna de comprobante
+                        data_row.cells[12].text = cell_data[15]
+                        para = data_row.cells[12].paragraphs[0]
+                        run = para.runs[0] if para.runs else para.add_run(cell_data[15])
+                        run.font.size = Pt(8)
+                        para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        
+        # === AGREGAR FILAS DE TOTALES ===
+        # Subtotales
+        subtotal_row = main_table.add_row()
+        subtotal_data = [
+            "", "", "", "", "", "", "SUB-TOTALES:",
+            format_number_spanish(totals['totalVentas']),
+            format_number_spanish(totals['totalExentos']),
+            format_number_spanish(totals['totalBaseNacional']),
+            "",
+            format_number_spanish(totals['totalIvaNacional']),
+            format_number_spanish(totals['totalRetencion'])
+        ]
+        
+        for i, data in enumerate(subtotal_data):
+            if i < len(subtotal_row.cells):
+                cell = subtotal_row.cells[i]
+                cell.text = data
+                para = cell.paragraphs[0]
+                run = para.runs[0] if para.runs else para.add_run(data)
+                run.font.size = Pt(8)
+                run.bold = True
+                
+                if i >= 6:
+                    para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        
+        # Totales finales
+        total_row = main_table.add_row()
+        total_data = [
+            "", "", "", "", "", "", "TOTALES:",
+            format_number_spanish(totals['totalVentas']),
+            format_number_spanish(totals['totalExentos']),
+            format_number_spanish(totals['totalBaseNacional']),
+            "",
+            format_number_spanish(totals['totalIvaNacional']),
+            format_number_spanish(totals['totalRetencion'])
+        ]
+        
+        for i, data in enumerate(total_data):
+            if i < len(total_row.cells):
+                cell = total_row.cells[i]
+                cell.text = data
+                para = cell.paragraphs[0]
+                run = para.runs[0] if para.runs else para.add_run(data)
+                run.font.size = Pt(8)
+                run.bold = True
+                
+                if i >= 6:
+                    para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        
+        # === APLICAR BORDES ===
+        border_style = {'val': 'single', 'sz': 4, 'color': '000000'}
+        
+        for i, row in enumerate(main_table.rows):
+            for j, cell in enumerate(row.cells):
+                if i <= 2:  # Filas de encabezado
+                    set_cell_border(cell, top=border_style, bottom=border_style)
+                else:  # Filas de datos
+                    if i == len(main_table.rows) - 2:  # Fila de subtotales
+                        set_cell_border(cell, top=border_style)
+                    elif i == len(main_table.rows) - 1:  # Fila de totales
+                        set_cell_border(cell, bottom=border_style)
+        
+        # Nombre de archivo
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        cliente_name = re.sub(r'[^a-zA-Z0-9_-]', '_', cliente.get('nombre', 'cliente'))
+        filename = f"libro_ventas_{cliente_name}_{timestamp}.docx"
+        filepath = os.path.join('temp', filename)
+        
+        # Guardar documento
+        doc.save(filepath)
+        
+        return jsonify({'filename': filename})
+    
+    except Exception as e:
+        current_app.logger.error(f'Error al generar Word: {str(e)}')
+        return jsonify({'error': f'Error interno: {str(e)}'}, 500)
+
 @main_routes.route('/descargar_word/<filename>')
 def descargar_word(filename):
     try:
@@ -1299,155 +1657,3 @@ def ventas_igtf(cliente_id):
         .filter(LibroVenta.id_cliente == cliente_id).all()
     return render_template('ventas_igtf.html', facturas_igtf=facturas_igtf, cliente=cliente)
 
-@main_routes.route('/exportar_libro_ventas_word', methods=['POST'])
-def exportar_libro_ventas_word():
-    try:
-        data = request.get_json()
-        html_content = data.get('html_content')
-        cliente = data.get('cliente', {})
-        os.makedirs('temp', exist_ok=True)
-        soup = BeautifulSoup(html_content, 'html.parser')
-        doc = Document()
-        for section in doc.sections:
-            section.top_margin = Cm(1.0)
-            section.bottom_margin = Cm(1.0)
-            section.left_margin = Cm(0.8)
-            section.right_margin = Cm(0.8)
-            section.page_width = Cm(29.7)
-            section.page_height = Cm(21.0)
-        style = doc.styles['Normal']
-        style.font.name = 'Courier New'
-        style.font.size = Pt(8)
-        # === ENCABEZADO SUPERIOR ===
-        header_table = doc.add_table(rows=1, cols=1)
-        header_table.autofit = False
-        header_table.columns[0].width = Cm(18)
-        # Título
-        title_para = doc.add_paragraph()
-        title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        title_run = title_para.add_run("Libro de Ventas")
-        title_run.bold = True
-        title_run.font.size = Pt(14)
-        doc.add_paragraph()
-        # Información de la empresa alineada a la izquierda
-        left_cell = header_table.rows[0].cells[0]
-        left_para = left_cell.paragraphs[0]
-        left_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        company_run = left_para.add_run(f"{cliente.get('nombre', 'N/A')}\n")
-        company_run.bold = True
-        company_run.font.size = Pt(9)
-        left_para.add_run(f"R.I.F.  : {cliente.get('rif', 'N/A')}\n")
-        left_para.add_run(f"Direccion : {cliente.get('direccion', 'N/A')}\n")
-        # Extraer período
-        period_text = ""
-        company_info = soup.find('div', class_='company-info')
-        if company_info:
-            for text in company_info.stripped_strings:
-                if "Mes :" in text:
-                    period_text = text.replace("Mes : ", "")
-                    break
-        left_para.add_run(f"Mes : {period_text}\n")
-        left_para.add_run("Pag:1")
-        for row in header_table.rows:
-            for cell in row.cells:
-                set_cell_border(cell, top={'val': 'nil'}, bottom={'val': 'nil'}, left={'val': 'nil'}, right={'val': 'nil'})
-        doc.add_paragraph()
-        # === TABLA PRINCIPAL DE DATOS ===
-        # Estructura igual a compras pero con columnas de ventas
-        main_table = doc.add_table(rows=4, cols=17)
-        column_widths = [
-            Cm(1.2),  # N° Factura
-            Cm(1.2),  # N° Control
-            Cm(1.5),  # Fecha Factura
-            Cm(2.5),  # RIF
-            Cm(3.0),  # Cliente
-            Cm(1.5),  # Tipo Documento
-            Cm(1.8),  # Monto Total
-            Cm(1.5),  # Base Imponible
-            Cm(1.2),  # % IVA
-            Cm(1.2),  # Monto IVA
-            Cm(1.5),  # N° Retención
-            Cm(1.2),  # % Retención
-            Cm(1.5),  # Monto Retenido
-            Cm(1.5),  # Monto IGTF
-            Cm(1.2),  # % IGTF
-            Cm(1.2),  # Tasa
-            Cm(1.2)   # Cant. $
-        ]
-        for i, width in enumerate(column_widths):
-            for row in main_table.rows:
-                row.cells[i].width = width
-        # === PRIMERA FILA - ENCABEZADOS ===
-        row1 = main_table.rows[0]
-        headers1 = [
-            "N° Factura", "N° Control", "Fecha Factura", "RIF", "Cliente", "Tipo Documento",
-            "Monto Total", "Base Imponible", "% IVA", "Monto IVA", "N° Retención", "% Retención",
-            "Monto Retenido", "Monto IGTF", "% IGTF", "Tasa", "Cant. $"
-        ]
-        for i, header in enumerate(headers1):
-            row1.cells[i].text = header
-            para = row1.cells[i].paragraphs[0]
-            para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            for run in para.runs:
-                run.bold = True
-                run.font.size = Pt(8)
-        # === EXTRAER Y AGREGAR DATOS ===
-        html_table = soup.find('table')
-        totals = [0] * 11  # Ajusta según columnas numéricas
-        if html_table:
-            for row in html_table.find_all('tr'):
-                cells = row.find_all('td')
-                if len(cells) >= 17 and not any(cls in row.get('class', []) for cls in ['subtotal', 'total']):
-                    data_row = main_table.add_row()
-                    cell_data = [cell.get_text().strip() for cell in cells[:17]]
-                    for i, data in enumerate(cell_data):
-                        if i < len(data_row.cells):
-                            cell = data_row.cells[i]
-                            cell.text = data
-                            para = cell.paragraphs[0]
-                            para.alignment = WD_ALIGN_PARAGRAPH.RIGHT if i >= 6 else WD_ALIGN_PARAGRAPH.LEFT
-                            run = para.runs[0] if para.runs else para.add_run(data)
-                            run.font.size = Pt(8)
-        # Subtotales y totales (puedes sumar si lo deseas)
-        subtotal_row = main_table.add_row()
-        subtotal_data = ["" for _ in range(6)] + ["SUB-TOTALES."] + ["" for _ in range(10)]
-        for i, data in enumerate(subtotal_data):
-            if i < len(subtotal_row.cells):
-                cell = subtotal_row.cells[i]
-                cell.text = data
-                para = cell.paragraphs[0]
-                run = para.runs[0] if para.runs else para.add_run(data)
-                run.font.size = Pt(8)
-                run.bold = True
-                if i >= 6:
-                    para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        total_row = main_table.add_row()
-        total_data = ["" for _ in range(6)] + ["TOTALES."] + ["" for _ in range(10)]
-        for i, data in enumerate(total_data):
-            if i < len(total_row.cells):
-                cell = total_row.cells[i]
-                cell.text = data
-                para = cell.paragraphs[0]
-                run = para.runs[0] if para.runs else para.add_run(data)
-                run.font.size = Pt(8)
-                run.bold = True
-                if i >= 6:
-                    para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        border_style = {'val': 'single', 'sz': 4, 'color': '000000'}
-        for i, row in enumerate(main_table.rows):
-            for j, cell in enumerate(row.cells):
-                if i == 0:
-                    set_cell_border(cell, top=border_style, bottom=border_style)
-                elif i == len(main_table.rows) - 2:
-                    set_cell_border(cell, top=border_style)
-                elif i == len(main_table.rows) - 1:
-                    set_cell_border(cell, bottom=border_style)
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        cliente_name = re.sub(r'[^a-zA-Z0-9_-]', '_', cliente.get('nombre', 'cliente'))
-        filename = f"libro_ventas_{cliente_name}_{timestamp}.docx"
-        filepath = os.path.join('temp', filename)
-        doc.save(filepath)
-        return jsonify({'filename': filename})
-    except Exception as e:
-        current_app.logger.error(f'Error al generar Word: {str(e)}')
-        return jsonify({'error': f'Error interno: {str(e)}'}, 500)
