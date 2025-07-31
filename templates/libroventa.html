@@ -130,15 +130,31 @@
                 var dateColumn = data[2]; // Índice de la columna de fecha factura
 
                 var date = parseDate(dateColumn);
-                var start = startDate ? new Date(startDate + 'T00:00:00') : null;
-                var end = endDate ? new Date(endDate + 'T23:59:59') : null;
+                if (!date) return true; // Si no se puede parsear la fecha, mostrar la fila
+                
+                // Crear fecha normalizada de la venta usando el mismo método que generatePrintReport
+                var dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                
+                var startDateOnly = null;
+                var endDateOnly = null;
+                
+                if (startDate) {
+                    var startParts = startDate.split('-'); // YYYY-MM-DD
+                    startDateOnly = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, parseInt(startParts[2]));
+                }
+                
+                if (endDate) {
+                    var endParts = endDate.split('-'); // YYYY-MM-DD
+                    endDateOnly = new Date(parseInt(endParts[0]), parseInt(endParts[1]) - 1, parseInt(endParts[2]));
+                }
 
-                if (start && end) {
-                    return date >= start && date <= end;
-                } else if (start && !end) {
-                    return date >= start;
-                } else if (!start && end) {
-                    return date <= end;
+                // Aplicar filtros
+                if (startDateOnly && endDateOnly) {
+                    return dateOnly >= startDateOnly && dateOnly <= endDateOnly;
+                } else if (startDateOnly && !endDateOnly) {
+                    return dateOnly >= startDateOnly;
+                } else if (!startDateOnly && endDateOnly) {
+                    return dateOnly <= endDateOnly;
                 }
                 return true;
             });
@@ -186,20 +202,61 @@
                 var table = $('#example2').DataTable();
                 var filteredData = [];
                 
-                // Obtener datos filtrados de la tabla
-                table.rows({ search: 'applied' }).every(function(rowIdx, tableLoop, rowLoop) {
-                    var data = this.data();
-                    // Buscar la venta correspondiente en ventasData
-                    var numeroFactura = data[0]; // Ajusta este índice según tu tabla
-                    var venta = window.ventasData.find(v => v.numerofactura === numeroFactura);
-                    if (venta) {
-                        filteredData.push(venta);
-                    }
-                });
+                // Verificar si hay filtros de fecha activos
+                var startDate = $('#startDate').val();
+                var endDate = $('#endDate').val();
+                var hasDateFilter = startDate || endDate;
+                
+                if (hasDateFilter) {
+                    // Si hay filtro de fechas, aplicar filtro manualmente a los datos originales
+                    filteredData = window.ventasData.filter(function(venta) {
+                        // Parsear fecha de la venta manualmente para evitar problemas de zona horaria
+                        var ventaDateOnly = null;
+                        if (venta.fechafactura) {
+                            var ventaParts = venta.fechafactura.split('-'); // YYYY-MM-DD
+                            ventaDateOnly = new Date(parseInt(ventaParts[0]), parseInt(ventaParts[1]) - 1, parseInt(ventaParts[2]));
+                        }
+                        
+                        var startDateOnly = null;
+                        var endDateOnly = null;
+                        
+                        if (startDate) {
+                            var startParts = startDate.split('-'); // YYYY-MM-DD
+                            startDateOnly = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, parseInt(startParts[2]));
+                        }
+                        
+                        if (endDate) {
+                            var endParts = endDate.split('-'); // YYYY-MM-DD
+                            endDateOnly = new Date(parseInt(endParts[0]), parseInt(endParts[1]) - 1, parseInt(endParts[2]));
+                        }
+                        
+                        // Aplicar filtros
+                        if (startDateOnly && endDateOnly) {
+                            return ventaDateOnly >= startDateOnly && ventaDateOnly <= endDateOnly;
+                        } else if (startDateOnly && !endDateOnly) {
+                            return ventaDateOnly >= startDateOnly;
+                        } else if (!startDateOnly && endDateOnly) {
+                            return ventaDateOnly <= endDateOnly;
+                        }
+                        
+                        return true;
+                    });
+                } else {
+                    // Si no hay filtro de fechas, obtener datos filtrados de la tabla (por búsqueda, etc.)
+                    table.rows({ search: 'applied' }).every(function(rowIdx, tableLoop, rowLoop) {
+                        var data = this.data();
+                        // Buscar la venta correspondiente en ventasData
+                        var numeroFactura = data[0]; // Ajusta este índice según tu tabla
+                        var venta = window.ventasData.find(v => v.numerofactura === numeroFactura);
+                        if (venta) {
+                            filteredData.push(venta);
+                        }
+                    });
 
-                // Si no se encontraron datos filtrados, usar todos los datos
-                if (filteredData.length === 0) {
-                    filteredData = window.ventasData;
+                    // Si no se encontraron datos filtrados, usar todos los datos
+                    if (filteredData.length === 0) {
+                        filteredData = window.ventasData;
+                    }
                 }
 
                 // Información del cliente
@@ -511,9 +568,7 @@
 
             // Manejar el evento de cambio en los campos de fecha
             $('#startDate, #endDate').on('change', function() {
-                if ($('#startDate').val() && $('#endDate').val()) {
-                    table.draw();
-                }
+                table.draw(); // Redibuja la tabla cuando cualquier fecha cambie
             });
 
             // Manejar la búsqueda en tiempo real
